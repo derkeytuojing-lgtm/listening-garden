@@ -34,7 +34,7 @@ typedef struct {
 typedef struct {
     int type;
     const char *name, *story, *clarify, *reply;
-    const char *question, *otherQuestion, *otherReply, *nextMorning;
+    const char *question, *otherQuestion, *otherReply, *nextMorning, *listenAction;
 } Story;
 void show_tree(const Plan *p, const Result *morning);
 void grow_tree(const Plan *p);
