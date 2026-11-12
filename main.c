@@ -92,27 +92,43 @@ static bool feed_group(Plan *plan, int group) {
     for (;;) {
         Move options[6]; /* ผลึกตรงกลุ่ม 2 ชนิด และสูตรข้ามกลุ่ม 4 คู่ */
         int count=0;
-        printf("\nเลือกปุ๋ยสำหรับ%s (+10 ต่อครั้ง)\n",part[group]);
         for (int a=0; a<TYPES; a++) {
             if (a/2!=group || !plan->bag[a]) continue;
             options[count++]=(Move){a,-1};
-            printf("%d. ใช้%s (เหลือ %d ชิ้น)\n",count,crystal[a],plan->bag[a]);
         }
+        int direct=count;
         for (int a=0; a<TYPES; a++) {
             for (int b=a+1; b<TYPES; b++) {
                 Move mix={a,b};
                 if (!plan->bag[a] || !plan->bag[b] || !recipe(a,b) || target(mix)!=group) continue;
                 options[count++]=mix;
-                printf("%d. ผสม%s + %s เป็น%s\n",count,crystal[a],crystal[b],recipe(a,b));
             }
         }
-        if (!count) {
-            puts("ผลึกที่เหลือบำรุงส่วนนี้ไม่ได้ ลองเลือกส่วนอื่นหรือย้อนแผน");
+        if (!direct) {
+            printf("\nผลึกสำหรับ%sหมดแล้ว\n",part[group]);
+            if (!count) {
+                puts("วัตถุดิบที่เหลือยังผสมปุ๋ยส่วนนี้ไม่ได้");
+                puts("0. กลับไปเลือกส่วนอื่น");
+                choose(0,0);
+                return false;
+            }
+            printf("1. ไปผสมปุ๋ยสำหรับ%s   0. กลับไปเลือกส่วนอื่น\n",part[group]);
+            if (choose(0,1)==0) return false;
+            printf("\nผสมปุ๋ยสำหรับ%s (+10 ต่อสูตร)\n",part[group]);
+        } else {
+            printf("\nเลือกปุ๋ยสำหรับ%s (+10 ต่อครั้ง)\n",part[group]);
+        }
+        for (int i=0; i<count; i++) {
+            Move m=options[i];
+            if (m.b<0) printf("%d. ใช้%s (เหลือ %d ชิ้น)\n",i+1,crystal[m.a],plan->bag[m.a]);
+            else printf("%d. ผสม%s + %s เป็น%s\n",i+1,crystal[m.a],crystal[m.b],recipe(m.a,m.b));
+        }
+        puts(direct ? "เลือกเลขเพื่อใส่ปุ๋ย หรือ 0 เพื่อเลือกส่วนอื่น" : "เลือกสูตรเพื่อผสมแล้วใส่ปุ๋ย หรือ 0 เพื่อกลับ");
+        int choice=choose(0,count);
+        if (!choice) {
+            if (!direct) continue;
             return false;
         }
-        puts("เลือกเลขเพื่อใส่ปุ๋ย หรือ 0 เพื่อเลือกส่วนอื่น");
-        int choice=choose(0,count);
-        if (!choice) return false;
         Move move=options[choice-1];
         int amount=1;
         if (move.b<0 && plan->bag[move.a]>1) {
