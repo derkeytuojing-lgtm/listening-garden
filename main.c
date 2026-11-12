@@ -65,8 +65,7 @@ static void describe(Move move) {
     printf(" → %s +10\n",part[target(move)]);
 }
 
-static void welcome(void) {
-    puts("สวนรับฟัง");
+static void show_aunt_ing(void) {
     puts("                  ⣠⢴⣒⣒⣲⢤⡀\n"
          "          ⢀⣀⡤⠤⠤⠤⠒⡞⠒⠲⠤⣌⡹⣽⠘⡆\n"
          "       ⢠⠔⠋⠁⢀⣠⠤⢀⣠⢦⡳⣈⠓⠦⣄⠙⢾⡰⠃\n"
@@ -83,6 +82,12 @@ static void welcome(void) {
          "   ⣠⠞⠉     ⠙⠦⣄⡴⠋⠳⣄⡤⠖⠁     ⠈⠓⢤⡀\n"
          "   ⠁                         ⠁");
     puts("ป้าอิงยิ้มให้จากหน้าร้าน");
+}
+
+static void welcome(void) {
+    puts("สวนรับฟัง");
+    const Plan title_tree={.value={30,30,30}, .count=9}; /* ต้นไม้ประดับหน้าเมนู */
+    show_tree(&title_tree,NULL);
     puts("1. เล่นเลย");
     puts("2. รู้จักเกม ดูวิธีเล่นและสูตรผสม");
     if (choose(1,2)==1) return;
@@ -275,6 +280,7 @@ int main(void) {
         Plan plan={0};
         new_day(&day);
         puts("\nสวนรับฟัง\n08:00  |  ป้าอิงวางห่อกระดาษลงบนเคาน์เตอร์");
+        show_aunt_ing();
         puts("“ฝากเมล็ดไว้สักคืนนะ วันนี้ใครแวะมาก็ลองฟังเขาดู พอตกเย็นค่อยเอาผลึกที่เขาฝากไว้มาปลูกกัน”");
         puts("ป้าอิงวางสมุดดูแลเมล็ดไว้ข้างห่อกระดาษ แล้วชี้ให้ดูพยากรณ์คืนนี้");
         puts(forecast[day.weather]);
