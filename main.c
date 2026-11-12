@@ -1,4 +1,4 @@
-#include "garden.h"
+﻿#include "garden.h"
 #include <stdio.h>
 #include <time.h>
 #ifdef _WIN32
@@ -29,18 +29,18 @@ static void guide(const Day *day) {
 }
 
 static void meet_customers(const Day *day, Plan *plan) {
-    const char *responses[]={"เล่าต่อได้เลย","ลองคิดด้วยกันไหม","นั่งด้วยกันสักพักนะ"};
+
     for (int i=0; i<VISITS; i++) {
         const Story *s=&stories[day->guest[i]];
         printf("\n%02d:00  |  %s\n“%s”\n", 9+i, s->name, s->story);
-        for (int j=0; j<3; j++) printf("%d. %s\n", j+1, responses[j]);
-        int answer=choose(1,3)-1;
-        if (answer != s->need) {
-            printf("“%s”\n",s->clarify);
-            printf("1. %s   2. เว้นจังหวะให้เขาเล่าต่อ\n",responses[s->need]);
-            if (choose(1,2)==2) puts("คุณวางถ้วยชาลง แล้วรอจนเขาพร้อมพูด");
+
+        printf("1. %s\n2. %s\n3. ถามว่าอยากให้ช่วยอะไร\n",s->question,s->otherQuestion);
+        int answer=choose(1,3);
+        if (answer==3) {
+            printf("“%s”\n1. %s\n2. %s\n",s->clarify,s->question,s->otherQuestion);
+            answer=choose(1,2);
         }
-        printf("“%s”\n",s->reply);
+        puts(answer==1 ? s->reply : s->otherReply);
         plan->bag[s->type]+=day->gift[i];
         printf("รับผลึก%s %d ชิ้น เก็บเข้าคลังแล้ว\n",crystal[s->type],day->gift[i]);
     }
@@ -75,6 +75,7 @@ static void describe(Move move) {
 }
 
 static void planting(const Day *day, Plan *plan) {
+    int before[STOCK], actions=0; /* จำนวนรายการก่อนแต่ละครั้งที่ใส่ปุ๋ย */
     for (;;) {
         puts("\n17:00  |  โต๊ะผสมปุ๋ย");
         for (int i=0; i<TYPES; i++)
@@ -95,11 +96,27 @@ static void planting(const Day *day, Plan *plan) {
             if (!plan->bag[move.a] || (move.b>=0 && !plan->bag[move.b])) {
                 puts("ผลึกที่เลือกหมดแล้ว"); continue;
             }
-            describe(move);
-            puts("1. ใส่ตามนี้   2. กลับไปเลือกใหม่");
-            if (choose(1,2)==1) apply(plan,move);
-        } else if (action==3) undo(plan);
-        else if (action==4) { while (plan->count>0) undo(plan); }
+            int amount=1;
+            if (action==1) {
+                printf("ใช้ผลึก%sกี่ชิ้น (0–%d)  ชิ้นละ 10 หน่วย • 0 เพื่อกลับ\n",
+                       crystal[move.a],plan->bag[move.a]);
+                amount=choose(0,plan->bag[move.a]);
+                if (amount==0) continue;
+            } else {
+                describe(move);
+                puts("1. ใส่ตามนี้   2. กลับไปเลือกใหม่");
+                if (choose(1,2)==2) continue;
+            }
+            before[actions++]=plan->count;
+            for (int i=0; i<amount; i++) apply(plan,move);
+        } else if (action==3 && actions>0) {
+            int stop=before[--actions];
+            while (plan->count>stop) undo(plan);
+        } else if (action==3) puts("ยังไม่มีรายการให้ย้อน");
+        else if (action==4) {
+            while (plan->count>0) undo(plan);
+            actions=0;
+        }
         else if (action==5) guide(day);
         else {
             puts("ปิดร้านแล้วจะแก้แผนไม่ได้   1. ยืนยันปลูก   2. กลับไปจัดแผน");
@@ -119,6 +136,31 @@ static const char *ending(const Plan *p, Result r) {
     return "มันผ่านคืนนี้มาได้แล้ว พรุ่งนี้ลองเดินดูรอบต้น ยังมีบางส่วนให้เราค่อย ๆ เติม";
 }
 
+/* ผลึกชนิดเดียวกันใช้ของลูกค้าที่มาก่อน เลือกเล่าถึงคนที่ฝาก
+   วัตถุดิบของสูตรแรก ถ้าไม่ได้ผสมให้เล่าถึงผลึกชิ้นแรกแทน */
+static void visitor_returns(const Day *day, const Plan *p) {
+    if (!p->count) return;
+    int index=0;
+    for (int i=0; i<p->count; i++) {
+        if (p->moves[i].b>=0) { index=i; break; }
+    }
+    Move move=p->moves[index];
+    int type=move.a, used=0;
+    for (int i=0; i<index; i++) {
+        if (p->moves[i].a==type || p->moves[i].b==type) used++;
+    }
+    for (int i=0; i<VISITS; i++) {
+        int id=day->guest[i];
+        if (stories[id].type!=type) continue;
+        if (used>=day->gift[i]) { used-=day->gift[i]; continue; }
+        printf("ผลึก%sจาก %s เมื่อวาน ",crystal[type],stories[id].name);
+        if (move.b>=0) printf("ผสมเป็น “%s” ",recipe(move.a,move.b));
+        printf("ได้เลี้ยง%sของต้นนี้\n",part[target(move)]);
+        printf("“%s”\n",stories[id].nextMorning);
+        break;
+    }
+}
+
 static void morning(const Day *day,const Plan *p) {
     const char *event[]={"ฝนสาดเข้าที่กิ่ง ยอดเอนตามแรงลม","ลมร้อนพัดจนผิวดินเริ่มแตกระแหง","แมลงไต่จากโคนต้นขึ้นไปหายอดอ่อน"};
     Result r=evaluate(p->value,day->weather);
@@ -126,6 +168,7 @@ static void morning(const Day *day,const Plan *p) {
     puts("1. รอจนฟ้าสาง"); choose(1,1);
     puts("\nเช้าวันถัดมา"); tree(p,true,r);
     printf("ป้าอิงก้มลงมองต้นไม้ “%s”\n",ending(p,r));
+    visitor_returns(day,p);
     puts("1. เปิดบันทึกการปลูก"); choose(1,1);
     proportions(p);
     printf("อากาศเมื่อคืน: %s   ขาดราก %d หน่วย / เปลือก %d หน่วย   สุขภาพ %d/100\n",
@@ -149,6 +192,7 @@ int main(void) {
         puts("1. เปิดประตูรับลูกค้า"); choose(1,1);
         meet_customers(&day,&plan);
         planting(&day,&plan);
+        grow_tree(&plan);
         morning(&day,&plan);
         puts("1. ดูสูตร Perfect ของวันนี้   2. เล่นรอบใหม่   3. ออกจากเกม");
         int action=choose(1,3);
