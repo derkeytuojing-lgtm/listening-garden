@@ -1,9 +1,6 @@
 ﻿#ifndef GARDEN_H
 #define GARDEN_H
 #include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
 
 enum { TYPES = 6, VISITS = 8, STOCK = 12 };
 

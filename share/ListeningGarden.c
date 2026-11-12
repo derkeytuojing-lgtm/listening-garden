@@ -1,18 +1,13 @@
-﻿/* สวนรับฟัง | ไฟล์เดียวสำหรับส่งให้เพื่อน
-   gcc -std=c11 ListeningGarden.c -o ListeningGarden.exe -lm
-*/
+﻿/* สวนรับฟัง | gcc -std=c11 ListeningGarden.c -o ListeningGarden.exe */
 #ifdef _WIN32
 #define _CRT_RAND_S
-#include <windows.h>
+#include <windows.h>  /* ภาษาไทยและภาพเคลื่อนไหวในคอนโซล Windows */
 #endif
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <stdio.h>
-#include <limits.h>
+#include <stdio.h>    /* รับตัวเลือกและพิมพ์ข้อความ */
+#include <stdlib.h>   /* rand_s บน Windows และ exit */
+#include <stdbool.h>  /* ค่า true/false สำหรับผลลัพธ์และเงื่อนไข */
 
-enum {TYPES = 6, VISITS = 8, STOCK = 12 };
+enum { TYPES = 6, VISITS = 8, STOCK = 12 };
 
 /* ผลึกเรียงเป็นคู่ 0–1 ใบ, 2–3 ราก, 4–5 เปลือก */
 typedef struct {
@@ -43,16 +38,6 @@ typedef struct {
     const char *name, *story, *clarify, *reply;
     const char *question, *otherQuestion, *otherReply, *nextMorning, *listenAction;
 } Story;
-void show_tree(const Plan *p, const Result *morning);
-void grow_tree(const Plan *p);
-extern const Story stories[12];
-extern const char *const crystal[TYPES], *const part[3], *const weather[3], *const forecast[3];
-const char *recipe(int a, int b);
-int target(Move m);
-bool apply(Plan *p, Move m);
-void undo(Plan *p);
-Result evaluate(const int v[3], int w);
-void new_day(Day *d);
 
 /* เรื่องของลูกค้า */
 const Story stories[] = {
@@ -125,61 +110,63 @@ void undo(Plan *p) {
  if(m.b>=0) p->bag[m.b]++;
  p->value[target(m)]-=10;
 }
+static int larger(int a, int b) {
+    return a > b ? a : b;
+}
+
+static int smaller(int a, int b) {
+    return a < b ? a : b;
+}
+
 Result evaluate(const int v[3],int w) {
  Result r={0};
  int low=v[0],high=v[0];
  for(int i=0;i<3;i++) {
-  low=(int)fmin(low,v[i]); high=(int)fmax(high,v[i]);
-  r.growth+=fmin(v[i],30)/3.0;
+  low=smaller(low,v[i]); high=larger(high,v[i]);
+  r.growth+=smaller(v[i],30)/3.0;
  }
  int rootGoal = 0, barkGoal = 0;
- if (w == 0 || w == 1) rootGoal = (int)fmax(30, v[0]);
- if (w == 0) barkGoal = (int)fmax(20, v[0] / 2);
- if (w == 2) barkGoal = (int)fmax(30, v[0]);
- r.missing[1] = (int)fmax(0, rootGoal - v[1]);
- r.missing[2] = (int)fmax(0, barkGoal - v[2]);
- r.health=(int)fmax(0,100-2*(r.missing[1]+r.missing[2]));
+ if (w == 0 || w == 1) rootGoal = larger(30, v[0]);
+ if (w == 0) barkGoal = larger(20, v[0] / 2);
+ if (w == 2) barkGoal = larger(30, v[0]);
+ r.missing[1] = larger(0, rootGoal - v[1]);
+ r.missing[2] = larger(0, barkGoal - v[2]);
+ r.health=larger(0,100-2*(r.missing[1]+r.missing[2]));
  r.weatherScore=.3*r.health;
  if (high > 0) r.balance = 40.0 * low / high;
  r.perfect=low>=30 && low==high && r.health==100;
  return r;
 }
-/* ทั้งสามชุดขาดได้เพียงกลุ่มเดียว เก็บของตรงกลุ่มไว้ด้านละ 3 ชิ้นก่อน
-   ถ้าด้านใดยังไม่ถึง 30 ให้ผสมของที่เหลือจากอีกสองด้านจนพอดี */
+/* หาผลึกที่ยังเหลือในกลุ่ม คืน -1 ถ้าใช้หมดแล้ว */
 static int remaining(const Plan *p,int group) {
  int first=group*2;
  if(p->bag[first]>0) return first;
  if(p->bag[first+1]>0) return first+1;
  return -1;
 }
-static bool find_answer(Day *d) {
+static bool find_answer(Day *d, int scarce, int mixes) {
  Plan p={0};
- memcpy(p.bag,d->stock,sizeof p.bag);
- for(int g=0;g<3;g++) {
-  while(p.value[g]<30 && remaining(&p,g)>=0) {
-   Move direct={remaining(&p,g),-1};
-   apply(&p,direct);
-  }
+ for (int i=0; i<TYPES; i++) p.bag[i]=d->stock[i];
+ /* ผสมให้ส่วนที่ขาดก่อน แล้วเติมผลึกตรงกลุ่มให้ครบด้านละ 30 */
+ for (int i=0; i<mixes; i++) {
+    int a=remaining(&p,(scarce+1)%3), b=remaining(&p,(scarce+2)%3);
+    if (a<0 || b<0 || !apply(&p,(Move){a,b})) return false;
  }
- int mixes=0;
- for(int g=0;g<3;g++) {
-  while(p.value[g]<30) {
-   int a=remaining(&p,(g+1)%3);
-   int b=remaining(&p,(g+2)%3);
-   if(a<0 || b<0) return false;
-   Move mix={a,b};
-   apply(&p,mix);
-   mixes++;
-  }
+ for (int g=0; g<3; g++) {
+    while (p.value[g]<30) {
+        int a=remaining(&p,g);
+        if (a<0 || !apply(&p,(Move){a,-1})) return false;
+    }
  }
- const int required[]={0,1,3};
  d->answer=p;
- return mixes==required[d->kind] && evaluate(p.value,d->weather).perfect;
+ return evaluate(p.value,d->weather).perfect;
 }
 
 /* คืนเลข 0 ถึง count-1 โดยตัดช่วงปลายที่หารไม่ลงตัวทิ้งก่อน */
 static int draw(int count) {
-    unsigned int value, limit = UINT_MAX - UINT_MAX % (unsigned)count;
+    /* เกมจับฉลากไม่เกิน 12 ตัวเลือก หนึ่งไบต์มี 256 ค่า */
+    unsigned int value;
+    int limit=256-256%count;
     do {
 #ifdef _WIN32
         if (rand_s(&value) != 0) {
@@ -192,7 +179,8 @@ static int draw(int count) {
             fputs("อ่านเลขสุ่มจากระบบไม่ได้ กรุณาเปิดเกมอีกครั้ง\n",stderr);
             exit(EXIT_FAILURE);
         }
-    } while (value >= limit);
+        value %= 256;
+    } while ((int)value >= limit);
     return (int)(value % (unsigned)count);
 }
 
@@ -205,8 +193,8 @@ static void shuffle(int ids[], int size) {
 }
 
 void new_day(Day *d) {
-    do {
-        memset(d,0,sizeof *d);
+    for (;;) {
+        *d=(Day){0};
         int roll=draw(10);
         int mixes=0;
         if (roll>=8) { d->kind=2; mixes=3; }
@@ -248,44 +236,31 @@ void new_day(Day *d) {
             for (int i=0; i<left[g]; i++) d->gift[guests[draw(n)]]++;
         }
         for (int i=0; i<VISITS; i++) d->stock[stories[d->guest[i]].type]+=d->gift[i];
-    } while (!find_answer(d));
+        if (find_answer(d,scarce,mixes)) return;
+    }
 }
 
 /* ภาพต้นไม้ */
-/* ภาพละ 8 บรรทัด วาดจากบนลงล่าง จุดด้านล่างของทุกภาพอยู่ตรงเมล็ด */
-static const char *const seed[] = {
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "            ⢀⡤⢤⡀",
+/* แต่ละภาพวางชิดดินที่แถว 7 เช่น [6] คือให้เริ่มวาดที่แถว 6 */
+static const char *const seed[8] = {
+    [6] = "            ⢀⡤⢤⡀",
     "            ⠻⠤⠞⠁"
 };
-static const char *const sprout[] = {
-    "",
-    "",
-    "",
-    "",
-    "",
-    "              ⣠⢖⡶",
+static const char *const sprout[8] = {
+    [5] = "              ⣠⢖⡶",
     "           ⠘⢿⣶⠋⠉",
     "             ⢸"
 };
-static const char *const sapling[] = {
-    "",
-    "",
-    "         ⣀⣀",
+static const char *const sapling[8] = {
+    [2] = "         ⣀⣀",
     "         ⢳⡈⠙⢦  ⢀⣠⠤⢤",
     "          ⠙⠲⠬⣇⢠⠋ ⢀⠎",
     "          ⢠⡤⠤⣜⡯⠤⠖⠋",
     "           ⠳⠤⠼⡇",
     "             ⢠⠇"
 };
-static const char *const branches[] = {
-    "",
-    "         ⢠",
+static const char *const branches[8] = {
+    [1] = "         ⢠",
     "          ⢧⡀ ⡄     ⣠",
     "      ⢀    ⠙⠦⡇   ⣀⠜⠁",
     "      ⠈⠳⡀    ⣇⣠⠤⠚⠁",
@@ -293,9 +268,8 @@ static const char *const branches[] = {
     "            ⠉⡇",
     "             ⡇"
 };
-static const char *const young[] = {
-    "",
-    "           ⡼⠳⡄      ⣀⣀⡀",
+static const char *const young[8] = {
+    [1] = "           ⡼⠳⡄      ⣀⣀⡀",
     "           ⠹⣄⡽⢀⣤⡀ ⢠⠎⢁⡰⠃",
     "    ⠸⡉⠙⢦⢠⣄⡀ ⠈⢹⢸⡀⢳⢀⡞⠉⠉",
     "     ⠙⠦⠤⢿⡀⠙⡆ ⢸ ⣳⠞⠋",
@@ -329,7 +303,7 @@ static void draw_frame(const Plan *p, int frame, const Result *morning) {
             puts("   ⢸⠁  ✿  ⠞⠉⠉    ✿     ⠈⡆");
         else if (morning && morning->perfect && row==4)
             puts(" ⠘⢦⡀ ⠘⠁  ✿  ⠠⡀  ⢠⠖⠒⠂ ✿  ⢀⡴⠁");
-        else puts(picture[row]);
+        else puts(picture[row] ? picture[row] : "");
     }
 
     if (leaning) puts("             ⢀⠎");
@@ -438,6 +412,22 @@ static void describe(Move move) {
 
 static void welcome(void) {
     puts("สวนรับฟัง");
+    puts("                  ⣠⢴⣒⣒⣲⢤⡀\n"
+         "          ⢀⣀⡤⠤⠤⠤⠒⡞⠒⠲⠤⣌⡹⣽⠘⡆\n"
+         "       ⢠⠔⠋⠁⢀⣠⠤⢀⣠⢦⡳⣈⠓⠦⣄⠙⢾⡰⠃\n"
+         "      ⣰⠃ ⣠⠞⣉⡤⠖⠋  ⠳⣌⠙⠒⠚⠻⡍⢳\n"
+         "      ⡇⢀⣴⠛⠉       ⢀⣙⣲⢤⣀⡀ ⡇\n"
+         "     ⢀⡇⡞⢀⡴⠾⠭⠽⢦⡀  ⣠⠝⠒⠚⠻⣆⢉⣡⣽⢤\n"
+         "     ⣏⢯⢩⡟⠰⠒⠲⠦ ⢻⢉⢹⡃⠚⠉⠋⠓⢈⡏⢠⠘⡼\n"
+         "     ⠸⡌⢸⠙⠦⠤⢤⠤⠴⢫⠏ ⠙⠢⠤⢤⡔⠋ ⡞⣰⠃\n"
+         "      ⠿⠛⡆⠈⠙⠂  ⠘⠒⠚ ⢀⡀⠉  ⢸⠛⠟\n"
+         "        ⠱⡄  ⠈⠳⣤⠤⢤⡶⠋   ⢠⠃\n"
+         "         ⠙⠦⣀  ⠈⠉⠉   ⢀⡴⠁\n"
+         "           ⣼⠙⠒⠦⠤⠤⠤⠖⢺⣅\n"
+         "     ⢀⡠⠴⠒⠋⢻⡁⠙⠦⣄⣀⣠⠤⠞⠁⣨⠏⠙⠒⠲⢤⣀\n"
+         "   ⣠⠞⠉     ⠙⠦⣄⡴⠋⠳⣄⡤⠖⠁     ⠈⠓⢤⡀\n"
+         "   ⠁                         ⠁");
+    puts("ป้าอิงยิ้มให้จากหน้าร้าน");
     puts("1. เล่นเลย");
     puts("2. รู้จักเกม ดูวิธีเล่นและสูตรผสม");
     if (choose(1,2)==1) return;

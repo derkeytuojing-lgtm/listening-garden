@@ -4,40 +4,26 @@
 #include <windows.h>
 #endif
 
-/* ภาพละ 8 บรรทัด วาดจากบนลงล่าง จุดด้านล่างของทุกภาพอยู่ตรงเมล็ด */
-static const char *const seed[] = {
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "            ⢀⡤⢤⡀",
+/* แต่ละภาพวางชิดดินที่แถว 7 เช่น [6] คือให้เริ่มวาดที่แถว 6 */
+static const char *const seed[8] = {
+    [6] = "            ⢀⡤⢤⡀",
     "            ⠻⠤⠞⠁"
 };
-static const char *const sprout[] = {
-    "",
-    "",
-    "",
-    "",
-    "",
-    "              ⣠⢖⡶",
+static const char *const sprout[8] = {
+    [5] = "              ⣠⢖⡶",
     "           ⠘⢿⣶⠋⠉",
     "             ⢸"
 };
-static const char *const sapling[] = {
-    "",
-    "",
-    "         ⣀⣀",
+static const char *const sapling[8] = {
+    [2] = "         ⣀⣀",
     "         ⢳⡈⠙⢦  ⢀⣠⠤⢤",
     "          ⠙⠲⠬⣇⢠⠋ ⢀⠎",
     "          ⢠⡤⠤⣜⡯⠤⠖⠋",
     "           ⠳⠤⠼⡇",
     "             ⢠⠇"
 };
-static const char *const branches[] = {
-    "",
-    "         ⢠",
+static const char *const branches[8] = {
+    [1] = "         ⢠",
     "          ⢧⡀ ⡄     ⣠",
     "      ⢀    ⠙⠦⡇   ⣀⠜⠁",
     "      ⠈⠳⡀    ⣇⣠⠤⠚⠁",
@@ -45,9 +31,8 @@ static const char *const branches[] = {
     "            ⠉⡇",
     "             ⡇"
 };
-static const char *const young[] = {
-    "",
-    "           ⡼⠳⡄      ⣀⣀⡀",
+static const char *const young[8] = {
+    [1] = "           ⡼⠳⡄      ⣀⣀⡀",
     "           ⠹⣄⡽⢀⣤⡀ ⢠⠎⢁⡰⠃",
     "    ⠸⡉⠙⢦⢠⣄⡀ ⠈⢹⢸⡀⢳⢀⡞⠉⠉",
     "     ⠙⠦⠤⢿⡀⠙⡆ ⢸ ⣳⠞⠋",
@@ -81,7 +66,7 @@ static void draw_frame(const Plan *p, int frame, const Result *morning) {
             puts("   ⢸⠁  ✿  ⠞⠉⠉    ✿     ⠈⡆");
         else if (morning && morning->perfect && row==4)
             puts(" ⠘⢦⡀ ⠘⠁  ✿  ⠠⡀  ⢠⠖⠒⠂ ✿  ⢀⡴⠁");
-        else puts(picture[row]);
+        else puts(picture[row] ? picture[row] : "");
     }
 
     if (leaning) puts("             ⢀⠎");
