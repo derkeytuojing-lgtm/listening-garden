@@ -1,4 +1,4 @@
-﻿#include "garden.h"
+#include "garden.h"
 #include <stdio.h>
 #include <time.h>
 #ifdef _WIN32
@@ -19,12 +19,17 @@ static int choose(int low, int high) {
     }
 }
 
-static void guide(const Day *day) {
-    puts("\nสมุดที่ป้าอิงฝากไว้");
+static void care_notes(void) {
+
     puts("สุข / ภูมิใจ เลี้ยงใบและดอก     เศร้า / กลัว เลี้ยงราก");
     puts("โกรธ / ผิดหวัง เลี้ยงเปลือก     ผลึกหนึ่งชิ้นให้ 10 หน่วย");
     puts("ผสมผลึกต่างกลุ่มสองชิ้น จะได้ปุ๋ยของกลุ่มที่สาม 10 หน่วย");
     puts("ถ้าอยากเห็นดอก ให้ทั้งสามด้านเท่ากัน ด้านละอย่างน้อย 30");
+}
+
+static void guide(const Day *day) {
+    puts("\nสมุดที่ป้าอิงฝากไว้");
+    care_notes();
     puts(forecast[day->weather]);
 }
 
@@ -72,6 +77,29 @@ static void describe(Move move) {
     if (move.b==-1) printf("%s",crystal[move.a]);
     else printf("%s + %s = %s",crystal[move.a],crystal[move.b],recipe(move.a,move.b));
     printf(" → %s +10\n",part[target(move)]);
+}
+
+static void welcome(void) {
+    puts("สวนรับฟัง");
+    puts("1. เล่นเลย");
+    puts("2. รู้จักเกม ดูวิธีเล่นและสูตรผสม");
+    if (choose(1,2)==1) return;
+
+    puts("\nเกมนี้เป็นแนวไหน?");
+    puts("คุณเปิดร้านเล็ก ๆ ให้คนแวะมาเล่าเรื่อง แลกกับผลึกความรู้สึก");
+    puts("พอร้านปิด ผลึกที่เก็บไว้จะกลายเป็นปริศนา คุณจะใช้มันเลี้ยงต้นไม้ยังไงให้ผ่านคืนนี้?");
+    puts("\nวิธีเล่น");
+    puts("ตอนเช้า ฟังพยากรณ์จากป้าอิง แล้วเลือกคำถามที่อยากถามลูกค้า");
+    puts("ตอนเย็น เลือกใส่ผลึกทีละชนิดหรือผสมเป็นปุ๋ย ลองจัดใหม่ได้จนกว่าจะยืนยันปลูก");
+    care_notes();
+    puts("\n1. เปิดหน้าสูตรผสม"); choose(1,1);
+    puts("\nสูตรผสมผลึก");
+    for (int a=0; a<TYPES; a++) {
+        for (int b=a+1; b<TYPES; b++) {
+            if (recipe(a,b)) describe((Move){a,b});
+        }
+    }
+    puts("\n1. เริ่มเนื้อเรื่อง"); choose(1,1);
 }
 
 static void planting(const Day *day, Plan *plan) {
@@ -181,6 +209,7 @@ int main(void) {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
 #endif
+    welcome();
     srand((unsigned)time(NULL));
     for (;;) {
         Day day;
@@ -188,7 +217,8 @@ int main(void) {
         new_day(&day);
         puts("\nสวนรับฟัง\n08:00  |  ป้าอิงวางห่อกระดาษลงบนเคาน์เตอร์");
         puts("“ฝากเมล็ดไว้สักคืนนะ วันนี้ใครแวะมาก็ลองฟังเขาดู พอตกเย็นค่อยเอาผลึกที่เขาฝากไว้มาปลูกกัน”");
-        guide(&day);
+        puts("ป้าอิงวางสมุดดูแลเมล็ดไว้ข้างห่อกระดาษ แล้วชี้ให้ดูพยากรณ์คืนนี้");
+        puts(forecast[day.weather]);
         puts("1. เปิดประตูรับลูกค้า"); choose(1,1);
         meet_customers(&day,&plan);
         planting(&day,&plan);
