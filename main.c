@@ -87,77 +87,80 @@ static void welcome(void) {
     puts("\n1. เริ่มเนื้อเรื่อง"); choose(1,1);
 }
 
-/* เก็บคู่ผลึกที่ทำได้ตอนนี้ เลขเมนูตรงกับลำดับในรายการ */
-static bool select_recipe(const Plan *plan, Move *move) {
-    Move choices[12];
+/* เลือกส่วนของต้นไม้ก่อน จะได้เห็นเฉพาะผลึกที่บำรุงส่วนนั้นได้ */
+static bool feed(Plan *plan) {
+    puts("\nอยากบำรุงส่วนไหน?");
+    puts("1. ใบและดอก   2. ราก   3. เปลือก   0. กลับ");
+    int group=choose(0,3)-1;
+    if (group<0) return false;
+
+    Move options[6]; /* ผลึกตรงกลุ่ม 2 ชนิด และสูตรข้ามกลุ่ม 4 คู่ */
     int count=0;
+    printf("\nเลือกปุ๋ยสำหรับ%s (+10 ต่อครั้ง)\n",part[group]);
+    for (int a=0; a<TYPES; a++) {
+        if (a/2!=group || !plan->bag[a]) continue;
+        options[count++]=(Move){a,-1};
+        printf("%d. ใช้%s (เหลือ %d ชิ้น)\n",count,crystal[a],plan->bag[a]);
+    }
     for (int a=0; a<TYPES; a++) {
         for (int b=a+1; b<TYPES; b++) {
-            if (!plan->bag[a] || !plan->bag[b] || !recipe(a,b)) continue;
-            choices[count]=(Move){a,b};
-            printf("%d. ",++count);
-            describe(choices[count-1]);
+            Move mix={a,b};
+            if (!plan->bag[a] || !plan->bag[b] || !recipe(a,b) || target(mix)!=group) continue;
+            options[count++]=mix;
+            printf("%d. ผสม%s + %s เป็น%s\n",count,crystal[a],crystal[b],recipe(a,b));
         }
     }
-    if (!count) { puts("ผลึกในคลังยังจับคู่ต่างกลุ่มไม่ได้"); return false; }
-    puts("เลือกสูตรเพื่อผสม หรือ 0 เพื่อกลับ");
+    if (!count) {
+        puts("ผลึกที่เหลือบำรุงส่วนนี้ไม่ได้ ลองเลือกส่วนอื่นหรือย้อนแผน");
+        return false;
+    }
+    puts("เลือกเลขเพื่อใส่ปุ๋ย หรือ 0 เพื่อกลับ");
     int choice=choose(0,count);
     if (!choice) return false;
-    *move=choices[choice-1];
+    Move move=options[choice-1];
+    int amount=1;
+    if (move.b<0 && plan->bag[move.a]>1) {
+        printf("ใช้กี่ชิ้น? 1–%d หรือ 0 เพื่อกลับ\n",plan->bag[move.a]);
+        amount=choose(0,plan->bag[move.a]);
+        if (!amount) return false;
+    }
+    for (int i=0; i<amount; i++) apply(plan,move);
+    printf("เติม%s +%d\n",part[group],10*amount);
     return true;
 }
 
 static void planting(const Day *day, Plan *plan) {
-    int before[STOCK], actions=0; /* จำนวนรายการก่อนแต่ละครั้งที่ใส่ปุ๋ย */
+    int before[STOCK], actions=0;
     for (;;) {
-        puts("\n17:00  |  โต๊ะผสมปุ๋ย");
-        for (int i=0; i<TYPES; i++)
-            printf("%d. %s × %d%s",i+1,crystal[i],plan->bag[i],i%2 ? "\n":"     ");
-        proportions(plan);
-        show_tree(plan,NULL);
-        puts("1. ใช้ผลึกตรง ๆ   2. ผสมสองชิ้น   3. ย้อนหนึ่งครั้ง");
-        puts("4. เริ่มจัดใหม่     5. เปิดคู่มือ      6. ปลูกและปิดร้าน");
-        puts("7. ดูสูตรที่ผสมได้ตอนนี้");
-        int action=choose(1,7);
-        if (action==1 || action==2 || action==7) {
-            Move move={0,-1};
-            if (action==7) {
-                if (!select_recipe(plan,&move)) continue;
-            } else {
-                puts("เลือกเลขผลึกชิ้นแรก");
-                move.a=choose(1,TYPES)-1;
-            }
-            if (action==2) {
-                puts("เลือกเลขผลึกชิ้นที่สอง");
-                move.b=choose(1,TYPES)-1;
-                if (move.a/2==move.b/2) { puts("ต้องเลือกผลึกต่างกลุ่มกัน"); continue; }
-            }
-            if (!plan->bag[move.a] || (move.b>=0 && !plan->bag[move.b])) {
-                puts("ผลึกที่เลือกหมดแล้ว"); continue;
-            }
-            int amount=1;
-            if (action==1) {
-                printf("ใช้ผลึก%sกี่ชิ้น (0–%d)  ชิ้นละ 10 หน่วย • 0 เพื่อกลับ\n",
-                       crystal[move.a],plan->bag[move.a]);
-                amount=choose(0,plan->bag[move.a]);
-                if (amount==0) continue;
-            } else {
-                describe(move);
-                puts("1. ใส่ตามนี้   2. กลับไปเลือกใหม่");
-                if (choose(1,2)==2) continue;
-            }
-            before[actions++]=plan->count;
-            for (int i=0; i<amount; i++) apply(plan,move);
-        } else if (action==3 && actions>0) {
-            int stop=before[--actions];
-            while (plan->count>stop) undo(plan);
-        } else if (action==3) puts("ยังไม่มีรายการให้ย้อน");
-        else if (action==4) {
-            while (plan->count>0) undo(plan);
-            actions=0;
-        }
-        else if (action==5) guide(day);
-        else {
+        printf("\n17:00  โต๊ะปลูก  •  คืนนี้%s\n",weather[day->weather]);
+        puts("อยากให้ต้นออกดอก เลี้ยงทั้งสามส่วนให้เท่ากัน ด้านละอย่างน้อย 30");
+        printf("ใบ %d   ราก %d   เปลือก %d\n",plan->value[0],plan->value[1],plan->value[2]);
+        puts("1. ใส่ปุ๋ย   2. ดูหรือแก้แผน   3. ปลูกและปิดร้าน");
+        int action=choose(1,3);
+        if (action==1) {
+            int previous=plan->count;
+            if (feed(plan)) before[actions++]=previous;
+        } else if (action==2) {
+            puts("\nต้นไม้ตามแผนตอนนี้");
+            show_tree(plan,NULL);
+            proportions(plan);
+            puts("ผลึกที่เหลือ");
+            for (int i=0; i<TYPES; i++)
+                printf("%s × %d%s",crystal[i],plan->bag[i],i%2 ? "\n" : "   ");
+            puts("1. ย้อนครั้งล่าสุด   2. คืนผลึกทั้งหมด   3. เปิดคู่มือ   0. กลับ");
+            int edit=choose(0,3);
+            if (edit==1 && actions) {
+                int stop=before[--actions];
+                while (plan->count>stop) undo(plan);
+                puts("คืนผลึกที่ใส่ครั้งล่าสุดแล้ว");
+            } else if (edit==1) puts("ยังไม่มีรายการให้ย้อน");
+            else if (edit==2) {
+                while (plan->count) undo(plan);
+                actions=0;
+                puts("คืนผลึกทั้งหมดแล้ว");
+            } else if (edit==3) guide(day);
+        } else {
+            if (!plan->count) puts("เมล็ดนี้ยังไม่ได้ใส่ปุ๋ย");
             puts("ปิดร้านแล้วจะแก้แผนไม่ได้   1. ยืนยันปลูก   2. กลับไปจัดแผน");
             if (choose(1,2)==1) return;
         }
