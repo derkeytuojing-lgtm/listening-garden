@@ -1,10 +1,9 @@
-#include "garden.h"
+﻿#include "garden.h"
 #include <assert.h>
 #include <stdio.h>
 
 int main(void) {
     int coverage[3][3]={0};
-    srand(17);
     for (int sample=0; sample<10000; sample++) {
         Day d;
         Plan player={0};

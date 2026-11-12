@@ -1,3 +1,8 @@
+﻿#ifdef _WIN32
+#define _CRT_RAND_S
+#endif
+#include <stdio.h>
+#include <limits.h>
 #include "garden.h"
 
 const char *const crystal[] = {"สุข","ภูมิใจ","เศร้า","กลัว","โกรธ","ผิดหวัง"};
@@ -94,39 +99,76 @@ static bool find_answer(Day *d) {
  return mixes==required[d->kind] && evaluate(p.value,d->weather).perfect;
 }
 
-void new_day(Day *d) {
- const int sets[3][3]={{4,4,4},{5,5,2},{6,6,0}};
- do {
-  memset(d,0,sizeof *d);
-  int roll=rand()%10;
-  if(roll<4) d->kind=0;
-  else if(roll<8) d->kind=1;
-  else d->kind=2;
-  d->weather=rand()%3;
-  int shift=rand()%3;
-  int left[3], used[3]={0}, firstGuest[3]={0};
-  for(int g=0;g<3;g++) left[(g+shift)%3]=sets[d->kind][g];
+/* คืนเลข 0 ถึง count-1 โดยตัดช่วงปลายที่หารไม่ลงตัวทิ้งก่อน */
+static int draw(int count) {
+    unsigned int value, limit = UINT_MAX - UINT_MAX % (unsigned)count;
+    do {
+#ifdef _WIN32
+        if (rand_s(&value) != 0) {
+#else
+        FILE *source = fopen("/dev/urandom","rb");
+        bool ok = source && fread(&value,sizeof value,1,source)==1;
+        if (source) fclose(source);
+        if (!ok) {
+#endif
+            fputs("อ่านเลขสุ่มจากระบบไม่ได้ กรุณาเปิดเกมอีกครั้ง\n",stderr);
+            exit(EXIT_FAILURE);
+        }
+    } while (value >= limit);
+    return (int)(value % (unsigned)count);
+}
 
-  /* แจกอย่างน้อยคนละหนึ่งชิ้น เลือกเรื่องจากกลุ่มที่ยังมีผลึก */
-  int offset=rand()%4;
-  int count=0;
-  while(count<VISITS) {
-   for(int g=0;g<3 && count<VISITS;g++) {
-    if(left[g]==0) continue;
-    if(used[g]==0) firstGuest[g]=count;
-    int id=4*g+(offset+used[g])%4;
-    d->guest[count]=id;
-    d->gift[count]=1;
-    left[g]--; used[g]++; count++;
-   }
-  }
-  for(int g=0;g<3;g++) d->gift[firstGuest[g]]+=left[g];
-  for(int i=0;i<VISITS;i++) {
-   int j=i+rand()%(VISITS-i);
-   int id=d->guest[j], gift=d->gift[j];
-   d->guest[j]=d->guest[i]; d->gift[j]=d->gift[i];
-   d->guest[i]=id; d->gift[i]=gift;
-   d->stock[stories[id].type]+=gift;
-  }
- } while(!find_answer(d));
+static void shuffle(int ids[], int size) {
+    for (int i=size-1; i>0; i--) {
+        int j=draw(i+1), temp=ids[i];
+        ids[i]=ids[j];
+        ids[j]=temp;
+    }
+}
+
+void new_day(Day *d) {
+    do {
+        memset(d,0,sizeof *d);
+        int roll=draw(10);
+        int mixes=0;
+        if (roll>=8) { d->kind=2; mixes=3; }
+        else if (roll>=4) { d->kind=1; mixes=1; }
+        d->weather=draw(3);
+
+        /* เริ่มที่ด้านละสามชิ้น แล้วแทนชิ้นที่ต้องผสมด้วยวัตถุดิบสองกลุ่ม */
+        int scarce=draw(3), left[3]={3,3,3};
+        left[scarce]-=mixes;
+        left[(scarce+1)%3]+=mixes;
+        left[(scarce+2)%3]+=mixes;
+        for (int i=0; i<STOCK-9-mixes; i++) {
+            int group=mixes ? (scarce+1+draw(2))%3 : draw(3);
+            left[group]++;
+        }
+
+        int ids[12], count=0;
+        bool chosen[12]={0}, represented[3]={0};
+        for (int i=0; i<12; i++) ids[i]=i;
+        shuffle(ids,12);
+        /* รอบแรกหาคนฝากผลึกให้ครบทุกกลุ่มที่มี รอบสองเติมให้ครบแปดคน */
+        for (int pass=0; pass<2; pass++) {
+            for (int i=0; i<12 && count<VISITS; i++) {
+                int id=ids[i], group=stories[id].type/2;
+                if (chosen[id] || left[group]==0) continue;
+                if (pass==0 && represented[group]) continue;
+                d->guest[count++]=id;
+                chosen[id]=true;
+                represented[group]=true;
+                left[group]--;
+            }
+        }
+        shuffle(d->guest,VISITS);
+        for (int i=0; i<VISITS; i++) d->gift[i]=1;
+        for (int g=0; g<3; g++) {
+            int guests[VISITS], n=0;
+            for (int i=0; i<VISITS; i++)
+                if (stories[d->guest[i]].type/2==g) guests[n++]=i;
+            for (int i=0; i<left[g]; i++) d->gift[guests[draw(n)]]++;
+        }
+        for (int i=0; i<VISITS; i++) d->stock[stories[d->guest[i]].type]+=d->gift[i];
+    } while (!find_answer(d));
 }

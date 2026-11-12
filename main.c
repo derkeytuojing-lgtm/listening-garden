@@ -1,6 +1,5 @@
 #include "garden.h"
 #include <stdio.h>
-#include <time.h>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -42,27 +41,13 @@ static void meet_customers(const Day *day, Plan *plan) {
         printf("1. %s\n2. %s\n3. ถามว่าอยากให้ช่วยอะไร\n",s->question,s->otherQuestion);
         int answer=choose(1,3);
         if (answer==3) {
-            printf("“%s”\n1. %s\n2. %s\n",s->clarify,s->question,s->otherQuestion);
-            answer=choose(1,2);
+            printf("“%s”\n",s->clarify);
+            puts("คุณพยักหน้า แล้วให้เวลาเขาสักครู่");
         }
-        puts(answer==1 ? s->reply : s->otherReply);
+        puts(answer==2 ? s->otherReply : s->reply);
         plan->bag[s->type]+=day->gift[i];
         printf("รับผลึก%s %d ชิ้น เก็บเข้าคลังแล้ว\n",crystal[s->type],day->gift[i]);
     }
-}
-
-static void tree(const Plan *p, bool morning, Result r) {
-    int leaves=p->value[0], roots=p->value[1], bark=p->value[2];
-    if (p->count==0) { puts("    .\n~~~~o~~~~   เมล็ดใต้ผิวดิน"); return; }
-    if (morning && r.perfect) puts("   * @ *\n  (@ * @)    ดอกแรกของเช้านี้");
-    else if (leaves>=30) puts("  ( & & )\n (& & & &)   พุ่มใบกว้าง");
-    else if (leaves>0) puts("    (,)      ยอดอ่อน");
-    else puts("     Y       กิ่งยังไม่มีใบ");
-    if (morning && r.missing[1]>0 && leaves>roots) puts("      /      ยอดเอน");
-    else if (bark>=30) puts("    |||      เปลือกหนา");
-    else puts("     |       ลำต้นบาง");
-    if (roots>=30) puts("~~~~/|\\~~~~\n  _/ | \\_    รากแผ่กว้าง");
-    else puts("~~~~~|~~~~~  รากสั้น");
 }
 
 static void proportions(const Plan *p) {
@@ -102,6 +87,26 @@ static void welcome(void) {
     puts("\n1. เริ่มเนื้อเรื่อง"); choose(1,1);
 }
 
+/* เก็บคู่ผลึกที่ทำได้ตอนนี้ เลขเมนูตรงกับลำดับในรายการ */
+static bool select_recipe(const Plan *plan, Move *move) {
+    Move choices[12];
+    int count=0;
+    for (int a=0; a<TYPES; a++) {
+        for (int b=a+1; b<TYPES; b++) {
+            if (!plan->bag[a] || !plan->bag[b] || !recipe(a,b)) continue;
+            choices[count]=(Move){a,b};
+            printf("%d. ",++count);
+            describe(choices[count-1]);
+        }
+    }
+    if (!count) { puts("ผลึกในคลังยังจับคู่ต่างกลุ่มไม่ได้"); return false; }
+    puts("เลือกสูตรเพื่อผสม หรือ 0 เพื่อกลับ");
+    int choice=choose(0,count);
+    if (!choice) return false;
+    *move=choices[choice-1];
+    return true;
+}
+
 static void planting(const Day *day, Plan *plan) {
     int before[STOCK], actions=0; /* จำนวนรายการก่อนแต่ละครั้งที่ใส่ปุ๋ย */
     for (;;) {
@@ -109,13 +114,19 @@ static void planting(const Day *day, Plan *plan) {
         for (int i=0; i<TYPES; i++)
             printf("%d. %s × %d%s",i+1,crystal[i],plan->bag[i],i%2 ? "\n":"     ");
         proportions(plan);
-        tree(plan,false,evaluate(plan->value,day->weather));
+        show_tree(plan,NULL);
         puts("1. ใช้ผลึกตรง ๆ   2. ผสมสองชิ้น   3. ย้อนหนึ่งครั้ง");
         puts("4. เริ่มจัดใหม่     5. เปิดคู่มือ      6. ปลูกและปิดร้าน");
-        int action=choose(1,6);
-        if (action==1 || action==2) {
-            puts("เลือกเลขผลึกชิ้นแรก");
-            Move move={choose(1,TYPES)-1,-1};
+        puts("7. ดูสูตรที่ผสมได้ตอนนี้");
+        int action=choose(1,7);
+        if (action==1 || action==2 || action==7) {
+            Move move={0,-1};
+            if (action==7) {
+                if (!select_recipe(plan,&move)) continue;
+            } else {
+                puts("เลือกเลขผลึกชิ้นแรก");
+                move.a=choose(1,TYPES)-1;
+            }
             if (action==2) {
                 puts("เลือกเลขผลึกชิ้นที่สอง");
                 move.b=choose(1,TYPES)-1;
@@ -194,7 +205,7 @@ static void morning(const Day *day,const Plan *p) {
     Result r=evaluate(p->value,day->weather);
     printf("\nกลางคืน  |  %s\n%s\n",weather[day->weather],event[day->weather]);
     puts("1. รอจนฟ้าสาง"); choose(1,1);
-    puts("\nเช้าวันถัดมา"); tree(p,true,r);
+    puts("\nเช้าวันถัดมา"); show_tree(p,&r);
     printf("ป้าอิงก้มลงมองต้นไม้ “%s”\n",ending(p,r));
     visitor_returns(day,p);
     puts("1. เปิดบันทึกการปลูก"); choose(1,1);
@@ -210,7 +221,6 @@ int main(void) {
     SetConsoleOutputCP(CP_UTF8);
 #endif
     welcome();
-    srand((unsigned)time(NULL));
     for (;;) {
         Day day;
         Plan plan={0};

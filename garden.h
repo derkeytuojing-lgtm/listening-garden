@@ -36,6 +36,7 @@ typedef struct {
     const char *name, *story, *clarify, *reply;
     const char *question, *otherQuestion, *otherReply, *nextMorning;
 } Story;
+void show_tree(const Plan *p, const Result *morning);
 void grow_tree(const Plan *p);
 extern const Story stories[12];
 extern const char *const crystal[TYPES], *const part[3], *const weather[3], *const forecast[3];
