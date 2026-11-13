@@ -1,5 +1,5 @@
 ﻿/* สวนรับฟัง ฉบับส่งงาน | gcc -std=c11 ListeningGarden.c -o GardenClass.exe
-   ถ้าใช้ Windows ให้พิมพ์ chcp 65001 ก่อนเล่นเพื่อแสดงภาษาไทย */
+   บันทึกซอร์สเป็น UTF-8 เพื่อแสดงภาษาไทยและภาพจุด */
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>  /* ใช้เวลาเริ่มต้นลำดับเลขสุ่มเพียงครั้งเดียว */
@@ -624,6 +624,9 @@ void morning(const Day *day,const Plan *p) {
 }
 
 int main(void) {
+#ifdef _WIN32
+    system("chcp 65001 >nul"); /* ให้คอนโซล Windows อ่านข้อความเป็น UTF-8 */
+#endif
     srand((unsigned)time(NULL));
     welcome();
     for (;;) {
