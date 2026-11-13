@@ -1,14 +1,12 @@
-﻿/* สวนรับฟัง | gcc -std=c11 ListeningGarden.c -o ListeningGarden.exe */
-#ifdef _WIN32
-#define _CRT_RAND_S
-#include <windows.h>  /* ภาษาไทยและภาพเคลื่อนไหวในคอนโซล Windows */
-#endif
-#include <stdio.h>    /* รับตัวเลือกและพิมพ์ข้อความ */
-#include <stdlib.h>   /* rand_s บน Windows และ exit */
-#include <stdbool.h>  /* ค่า true/false สำหรับผลลัพธ์และเงื่อนไข */
+﻿/* สวนรับฟัง ฉบับส่งงาน | gcc -std=c11 ListeningGarden.c -o GardenClass.exe
+   ถ้าใช้ Windows ให้พิมพ์ chcp 65001 ก่อนเล่นเพื่อแสดงภาษาไทย */
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>  /* ใช้เวลาเริ่มต้นลำดับเลขสุ่มเพียงครั้งเดียว */
 
-enum { TYPES = 6, VISITS = 8, STOCK = 12 };
-
+#define TYPES 6
+#define VISITS 8
+#define STOCK 12
 /* ผลึกเรียงเป็นคู่ 0–1 ใบ, 2–3 ราก, 4–5 เปลือก */
 typedef struct {
     int a, b;              /* b เท่ากับ -1 เมื่อใช้ผลึกตรง ๆ */
@@ -30,7 +28,7 @@ typedef struct {
 typedef struct {
     double growth, balance, weatherScore;
     int missing[3], health;
-    bool perfect;
+    int perfect;
 } Result;
 
 typedef struct {
@@ -38,6 +36,11 @@ typedef struct {
     const char *name, *story, *clarify, *reply;
     const char *question, *otherQuestion, *otherReply, *nextMorning, *listenAction;
 } Story;
+
+Move make_move(int a, int b) {
+    Move move={a,b};
+    return move;
+}
 
 /* เรื่องของลูกค้า */
 const Story stories[] = {
@@ -68,21 +71,22 @@ const Story stories[] = {
 };
 
 /* ผลึก คะแนน และการสุ่มวัน */
-const char *const crystal[] = {"สุข","ภูมิใจ","เศร้า","กลัว","โกรธ","ผิดหวัง"};
-const char *const part[] = {"ใบและดอก","ราก","เปลือก"};
-const char *const weather[] = {"พายุ","แล้ง","แมลง"};
-const char *const forecast[] = {
+const char crystal[][64] = {"สุข","ภูมิใจ","เศร้า","กลัว","โกรธ","ผิดหวัง"};
+const char part[][64] = {"ใบและดอก","ราก","เปลือก"};
+const char weather[][64] = {"พายุ","แล้ง","แมลง"};
+const char forecast[][512] = {
  "คืนนี้มีพายุ • รากอย่างน้อย 30 และไม่น้อยกว่าใบ ส่วนเปลือกต้องถึง 20 และอย่างน้อยครึ่งหนึ่งของใบ",
  "คืนนี้ดินจะแห้ง • รากต้องถึง 30 และไม่น้อยกว่าใบ จึงจะส่งน้ำไปเลี้ยงยอดได้ทั่ว",
  "คืนนี้แมลงจะลง • เปลือกต้องถึง 30 และไม่น้อยกว่าใบ จึงจะป้องกันยอดอ่อนได้"};
-const char *recipe(int a,int b) {
- static const char *const names[6][6]={
+const char *mix_names[6][6]={
   {0,0,"อบอุ่นใจ","กล้าหาญ","มุ่งมั่น","มีหวัง"},
   {0,0,"ยอมรับตัวเอง","เชื่อมั่นในตัวเอง","เคารพตัวเอง","หนักแน่น"},
   {0,0,0,0,"ฮึดสู้","เห็นอกเห็นใจ"},
   {0,0,0,0,"เด็ดเดี่ยว","ทำใจยอมรับ"}};
- if (a <= b) return names[a][b];
- return names[b][a];
+
+const char *recipe(int a,int b) {
+ if (a <= b) return mix_names[a][b];
+ return mix_names[b][a];
 }
 int target(Move m) {
     int first = m.a / 2;
@@ -94,14 +98,14 @@ int target(Move m) {
     }
     return -1;
 }
-bool apply(Plan *p,Move m) {
- if(m.a<0 || m.a>=TYPES || m.b < -1 || m.b>=TYPES || !p->bag[m.a] || p->count>=STOCK) return false;
- if(m.b>=0 && (m.a/2==m.b/2 || !p->bag[m.b])) return false;
+int apply(Plan *p,Move m) {
+ if(m.a<0 || m.a>=TYPES || m.b < -1 || m.b>=TYPES || !p->bag[m.a] || p->count>=STOCK) return 0;
+ if(m.b>=0 && (m.a/2==m.b/2 || !p->bag[m.b])) return 0;
  p->bag[m.a]--;
  if(m.b>=0) p->bag[m.b]--;
  p->value[target(m)]+=10;
  p->moves[p->count++]=m;
- return true;
+ return 1;
 }
 void undo(Plan *p) {
  if(!p->count) return;
@@ -110,12 +114,14 @@ void undo(Plan *p) {
  if(m.b>=0) p->bag[m.b]++;
  p->value[target(m)]-=10;
 }
-static int larger(int a, int b) {
-    return a > b ? a : b;
+int larger(int a, int b) {
+    if (a>b) return a;
+    return b;
 }
 
-static int smaller(int a, int b) {
-    return a < b ? a : b;
+int smaller(int a, int b) {
+    if (a<b) return a;
+    return b;
 }
 
 Result evaluate(const int v[3],int w) {
@@ -138,53 +144,36 @@ Result evaluate(const int v[3],int w) {
  return r;
 }
 /* หาผลึกที่ยังเหลือในกลุ่ม คืน -1 ถ้าใช้หมดแล้ว */
-static int remaining(const Plan *p,int group) {
+int remaining(const Plan *p,int group) {
  int first=group*2;
  if(p->bag[first]>0) return first;
  if(p->bag[first+1]>0) return first+1;
  return -1;
 }
-static bool find_answer(Day *d, int scarce, int mixes) {
+int find_answer(Day *d, int scarce, int mixes) {
  Plan p={0};
  for (int i=0; i<TYPES; i++) p.bag[i]=d->stock[i];
  /* ผสมให้ส่วนที่ขาดก่อน แล้วเติมผลึกตรงกลุ่มให้ครบด้านละ 30 */
  for (int i=0; i<mixes; i++) {
     int a=remaining(&p,(scarce+1)%3), b=remaining(&p,(scarce+2)%3);
-    if (a<0 || b<0 || !apply(&p,(Move){a,b})) return false;
+    if (a<0 || b<0 || !apply(&p,make_move(a,b))) return 0;
  }
  for (int g=0; g<3; g++) {
     while (p.value[g]<30) {
         int a=remaining(&p,g);
-        if (a<0 || !apply(&p,(Move){a,-1})) return false;
+        if (a<0 || !apply(&p,make_move(a,-1))) return 0;
     }
  }
  d->answer=p;
  return evaluate(p.value,d->weather).perfect;
 }
 
-/* คืนเลข 0 ถึง count-1 โดยตัดช่วงปลายที่หารไม่ลงตัวทิ้งก่อน */
-static int draw(int count) {
-    /* เกมจับฉลากไม่เกิน 12 ตัวเลือก หนึ่งไบต์มี 256 ค่า */
-    unsigned int value;
-    int limit=256-256%count;
-    do {
-#ifdef _WIN32
-        if (rand_s(&value) != 0) {
-#else
-        FILE *source = fopen("/dev/urandom","rb");
-        bool ok = source && fread(&value,sizeof value,1,source)==1;
-        if (source) fclose(source);
-        if (!ok) {
-#endif
-            fputs("อ่านเลขสุ่มจากระบบไม่ได้ กรุณาเปิดเกมอีกครั้ง\n",stderr);
-            exit(EXIT_FAILURE);
-        }
-        value %= 256;
-    } while ((int)value >= limit);
-    return (int)(value % (unsigned)count);
+/* ตัวอย่าง draw(3) ให้ผลเป็น 0, 1 หรือ 2 */
+int draw(int count) {
+    return rand() % count;
 }
 
-static void shuffle(int ids[], int size) {
+void shuffle(int ids[], int size) {
     for (int i=size-1; i>0; i--) {
         int j=draw(i+1), temp=ids[i];
         ids[i]=ids[j];
@@ -194,7 +183,8 @@ static void shuffle(int ids[], int size) {
 
 void new_day(Day *d) {
     for (;;) {
-        *d=(Day){0};
+        Day empty={0};
+        *d=empty;
         int roll=draw(10);
         int mixes=0;
         if (roll>=8) { d->kind=2; mixes=3; }
@@ -207,95 +197,116 @@ void new_day(Day *d) {
         left[(scarce+1)%3]+=mixes;
         left[(scarce+2)%3]+=mixes;
         for (int i=0; i<STOCK-9-mixes; i++) {
-            int group=mixes ? (scarce+1+draw(2))%3 : draw(3);
+            int group;
+            if (mixes>0) group=(scarce+1+draw(2))%3;
+            else group=draw(3);
             left[group]++;
         }
 
-        int ids[12], count=0;
-        bool chosen[12]={0}, represented[3]={0};
+        /* สับบัตรชื่อ 12 ใบ แล้วลองหยิบ 8 ใบแรกจนแจกผลึกได้ครบทุกกลุ่ม */
+        int ids[12], people[3], valid;
         for (int i=0; i<12; i++) ids[i]=i;
-        shuffle(ids,12);
-        /* รอบแรกหาคนฝากผลึกให้ครบทุกกลุ่มที่มี รอบสองเติมให้ครบแปดคน */
-        for (int pass=0; pass<2; pass++) {
-            for (int i=0; i<12 && count<VISITS; i++) {
-                int id=ids[i], group=stories[id].type/2;
-                if (chosen[id] || left[group]==0) continue;
-                if (pass==0 && represented[group]) continue;
-                d->guest[count++]=id;
-                chosen[id]=true;
-                represented[group]=true;
-                left[group]--;
+        do {
+            shuffle(ids,12);
+            for (int g=0; g<3; g++) people[g]=0;
+            for (int i=0; i<VISITS; i++) people[stories[ids[i]].type/2]++;
+            valid=1;
+            for (int g=0; g<3; g++) {
+                if (people[g]>left[g] || (left[g]>0 && people[g]==0)) valid=0;
+            }
+        } while (!valid);
+        for (int i=0; i<VISITS; i++) {
+            d->guest[i]=ids[i];
+            d->gift[i]=1;
+            left[stories[ids[i]].type/2]--;
+        }
+        for (int g=0; g<3; g++) {
+            while (left[g]>0) {
+                int i=draw(VISITS);
+                if (stories[ids[i]].type/2==g) {
+                    d->gift[i]++;
+                    left[g]--;
+                }
             }
         }
-        shuffle(d->guest,VISITS);
-        for (int i=0; i<VISITS; i++) d->gift[i]=1;
-        for (int g=0; g<3; g++) {
-            int guests[VISITS], n=0;
-            for (int i=0; i<VISITS; i++)
-                if (stories[d->guest[i]].type/2==g) guests[n++]=i;
-            for (int i=0; i<left[g]; i++) d->gift[guests[draw(n)]]++;
-        }
-        for (int i=0; i<VISITS; i++) d->stock[stories[d->guest[i]].type]+=d->gift[i];
+        for (int i=0; i<VISITS; i++) d->stock[stories[ids[i]].type]+=d->gift[i];
         if (find_answer(d,scarce,mixes)) return;
     }
 }
 
 /* ภาพต้นไม้ */
-/* แต่ละภาพวางชิดดินที่แถว 7 เช่น [6] คือให้เริ่มวาดที่แถว 6 */
-static const char *const seed[8] = {
-    [6] = "            ⢀⡤⢤⡀",
-    "            ⠻⠤⠞⠁"
-};
-static const char *const sprout[8] = {
-    [5] = "              ⣠⢖⡶",
-    "           ⠘⢿⣶⠋⠉",
-    "             ⢸"
-};
-static const char *const sapling[8] = {
-    [2] = "         ⣀⣀",
-    "         ⢳⡈⠙⢦  ⢀⣠⠤⢤",
-    "          ⠙⠲⠬⣇⢠⠋ ⢀⠎",
-    "          ⢠⡤⠤⣜⡯⠤⠖⠋",
-    "           ⠳⠤⠼⡇",
-    "             ⢠⠇"
-};
-static const char *const branches[8] = {
-    [1] = "         ⢠",
-    "          ⢧⡀ ⡄     ⣠",
-    "      ⢀    ⠙⠦⡇   ⣀⠜⠁",
-    "      ⠈⠳⡀    ⣇⣠⠤⠚⠁",
-    "        ⠈⠳⢤⣀ ⡗",
-    "            ⠉⡇",
-    "             ⡇"
-};
-static const char *const young[8] = {
-    [1] = "           ⡼⠳⡄      ⣀⣀⡀",
-    "           ⠹⣄⡽⢀⣤⡀ ⢠⠎⢁⡰⠃",
-    "    ⠸⡉⠙⢦⢠⣄⡀ ⠈⢹⢸⡀⢳⢀⡞⠉⠉",
-    "     ⠙⠦⠤⢿⡀⠙⡆ ⢸ ⣳⠞⠋",
-    "         ⠙⠲⢧⣀⣸⠋⠁",
-    "             ⢹",
-    "             ⡞"
-};
-static const char *const canopy[] = {
-    "       ⢀⣀⣀⡀⣠⠖⠒⠒⢦⣠⠤⠤⣄",
-    "    ⣀⣀⣰⠋  ⠉   ⠰⠋⠉⠁ ⠈⠧⠤⠤⣄",
-    "   ⢸⠁     ⠞⠉⠉          ⠈⡆",
-    " ⢀⡴⠋  ⣀⣀⡀           ⠞⠉⠉ ⠙⠲⡀",
-    " ⠘⢦⡀ ⠘⠁     ⠠⡀  ⢠⠖⠒⠂    ⢀⡴⠁",
-    "   ⣇⣀⣀⡀  ⠐⣄  ⢹⡀  ⡴⠊    ⢀⡼",
-    "    ⠈ ⠙⠢⠴⠚⠛⠷⡤⢤⣧⣶⠟⠦⢤⠴⠊⠉⠉⠉",
-    "            ⢱⠘⢰⠃"
+/* รูปหนึ่งรูปมี 8 บรรทัด เว้นแถวบนให้โคนต้นอยู่ที่เดิม */
+const char pictures[6][8][120]={
+    { /* seed */
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "            ⢀⡤⢤⡀",
+        "            ⠻⠤⠞⠁"
+    },
+    { /* sprout */
+        "",
+        "",
+        "",
+        "",
+        "",
+        "              ⣠⢖⡶",
+        "           ⠘⢿⣶⠋⠉",
+        "             ⢸"
+    },
+    { /* sapling */
+        "",
+        "",
+        "         ⣀⣀",
+        "         ⢳⡈⠙⢦  ⢀⣠⠤⢤",
+        "          ⠙⠲⠬⣇⢠⠋ ⢀⠎",
+        "          ⢠⡤⠤⣜⡯⠤⠖⠋",
+        "           ⠳⠤⠼⡇",
+        "             ⢠⠇"
+    },
+    { /* branches */
+        "",
+        "         ⢠",
+        "          ⢧⡀ ⡄     ⣠",
+        "      ⢀    ⠙⠦⡇   ⣀⠜⠁",
+        "      ⠈⠳⡀    ⣇⣠⠤⠚⠁",
+        "        ⠈⠳⢤⣀ ⡗",
+        "            ⠉⡇",
+        "             ⡇"
+    },
+    { /* young */
+        "",
+        "           ⡼⠳⡄      ⣀⣀⡀",
+        "           ⠹⣄⡽⢀⣤⡀ ⢠⠎⢁⡰⠃",
+        "    ⠸⡉⠙⢦⢠⣄⡀ ⠈⢹⢸⡀⢳⢀⡞⠉⠉",
+        "     ⠙⠦⠤⢿⡀⠙⡆ ⢸ ⣳⠞⠋",
+        "         ⠙⠲⢧⣀⣸⠋⠁",
+        "             ⢹",
+        "             ⡞"
+    },
+    { /* canopy */
+        "       ⢀⣀⣀⡀⣠⠖⠒⠒⢦⣠⠤⠤⣄",
+        "    ⣀⣀⣰⠋  ⠉   ⠰⠋⠉⠁ ⠈⠧⠤⠤⣄",
+        "   ⢸⠁     ⠞⠉⠉          ⠈⡆",
+        " ⢀⡴⠋  ⣀⣀⡀           ⠞⠉⠉ ⠙⠲⡀",
+        " ⠘⢦⡀ ⠘⠁     ⠠⡀  ⢠⠖⠒⠂    ⢀⡴⠁",
+        "   ⣇⣀⣀⡀  ⠐⣄  ⢹⡀  ⡴⠊    ⢀⡼",
+        "    ⠈ ⠙⠢⠴⠚⠛⠷⡤⢤⣧⣶⠟⠦⢤⠴⠊⠉⠉⠉",
+        "            ⢱⠘⢰⠃"
+    }
 };
 
-static void draw_frame(const Plan *p, int frame, const Result *morning) {
-    const char *const *picture = seed;
-    if (frame == 1) picture = sprout;
-    if (frame == 2) picture = sapling;
-    if (frame >= 3) picture = young;
-    if (frame >= 4 && p->value[0] >= 30) picture = canopy;
-    if (frame >= 2 && p->value[0] == 0) picture = branches;
-    bool leaning=morning && morning->missing[1]>0 && p->value[0]>p->value[1];
+void draw_frame(const Plan *p, int frame, const Result *morning) {
+    int image=0;                      /* เมล็ด */
+    if (frame==1) image=1;            /* แตกหน่อ */
+    if (frame==2) image=2;            /* ต้นกล้า */
+    if (frame>=3) image=4;            /* มีใบ */
+    if (frame>=4 && p->value[0]>=30) image=5;
+    if (frame>=2 && p->value[0]==0) image=3;
+    int leaning=morning && morning->missing[1]>0 && p->value[0]>p->value[1];
     for (int row=0; row<8; row++) {
         /* กิ่งเอนออกจากโคนมากขึ้น ยิ่งอยู่ใกล้ยอด */
         if (leaning) printf("%*s",8-row,"");
@@ -303,7 +314,7 @@ static void draw_frame(const Plan *p, int frame, const Result *morning) {
             puts("   ⢸⠁  ✿  ⠞⠉⠉    ✿     ⠈⡆");
         else if (morning && morning->perfect && row==4)
             puts(" ⠘⢦⡀ ⠘⠁  ✿  ⠠⡀  ⢠⠖⠒⠂ ✿  ⢀⡴⠁");
-        else puts(picture[row] ? picture[row] : "");
+        else puts(pictures[image][row]);
     }
 
     if (leaning) puts("             ⢀⠎");
@@ -316,42 +327,36 @@ static void draw_frame(const Plan *p, int frame, const Result *morning) {
         puts("        ⢀⡠⠔⠊⢹⠑⠢⢄⡀");
         puts("      ⠠⠔⠁    ⠘⠄   ⠉⠒⠤");
     } else {
-        puts(frame ? "             ⠣" : "");
+        if (frame>0) puts("             ⠣");
+        else puts("");
         puts("");
     }
 }
 
 void show_tree(const Plan *p, const Result *morning) {
-    draw_frame(p,p->count ? 4 : 0,morning);
+    if (p->count>0) draw_frame(p,4,morning);
+    else draw_frame(p,0,morning);
 }
 
 void grow_tree(const Plan *p) {
     puts("\nสวนหลังร้าน");
-    int last = p->count ? 4 : 0;
-#ifdef _WIN32
-    HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
-    DWORD mode;
-    if (GetConsoleMode(out, &mode) &&
-        SetConsoleMode(out, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)) {
-        /* วาดทับที่เดิมทีละภาพจนถึงภาพสุดท้าย */
-        for (int frame = 0; frame <= last; frame++) {
-            if (frame > 0) printf("\033[12A");
-            /* ล้างบรรทัดที่ภาพเก่าเคยอยู่ รวมทั้งส่วนที่กว้างกว่าภาพใหม่ */
-            printf("\033[J");
-            draw_frame(p, frame,NULL);
-            fflush(stdout);
-            if (frame < last) Sleep(480);
-        }
-        SetConsoleMode(out, mode);
+    if (!p->count) {
+        draw_frame(p,0,NULL);
         return;
     }
-#endif
-    draw_frame(p, last,NULL);
+    char line[100];
+    for (int frame=0; frame<=4; frame++) {
+        draw_frame(p,frame,NULL);
+        if (frame<4) {
+            puts("กด Enter เพื่อดูต้นไม้โตต่อ");
+            if (!fgets(line,sizeof line,stdin)) return;
+        }
+    }
 }
 
 /* เมนูและลำดับการเล่น */
 /* อ่านทีละบรรทัด ถ้าพิมพ์ผิด ให้เลือกใหม่โดยไม่เสียผลึก */
-static int choose(int low, int high) {
+int choose(int low, int high) {
     char line[100], extra;
     int answer;
     for (;;) {
@@ -364,7 +369,7 @@ static int choose(int low, int high) {
     }
 }
 
-static void care_notes(void) {
+void care_notes(void) {
 
     puts("สุข / ภูมิใจ เลี้ยงใบและดอก     เศร้า / กลัว เลี้ยงราก");
     puts("โกรธ / ผิดหวัง เลี้ยงเปลือก     ผลึกหนึ่งชิ้นให้ 10 หน่วย");
@@ -372,13 +377,13 @@ static void care_notes(void) {
     puts("ถ้าอยากเห็นดอก ให้ทั้งสามด้านเท่ากัน ด้านละอย่างน้อย 30");
 }
 
-static void guide(const Day *day) {
+void guide(const Day *day) {
     puts("\nสมุดที่ป้าอิงฝากไว้");
     care_notes();
     puts(forecast[day->weather]);
 }
 
-static void meet_customers(const Day *day, Plan *plan) {
+void meet_customers(const Day *day, Plan *plan) {
 
     for (int i=0; i<VISITS; i++) {
         const Story *s=&stories[day->guest[i]];
@@ -390,13 +395,14 @@ static void meet_customers(const Day *day, Plan *plan) {
             printf("“%s”\n",s->clarify);
             puts(s->listenAction);
         }
-        puts(answer==2 ? s->otherReply : s->reply);
+        if (answer==2) puts(s->otherReply);
+        else puts(s->reply);
         plan->bag[s->type]+=day->gift[i];
         printf("รับผลึก%s %d ชิ้น เก็บเข้าคลังแล้ว\n",crystal[s->type],day->gift[i]);
     }
 }
 
-static void proportions(const Plan *p) {
+void proportions(const Plan *p) {
     int total=p->value[0]+p->value[1]+p->value[2];
     if (total==0) { puts("ยังไม่ได้ใส่ปุ๋ย"); return; }
     for (int i=0; i<3; i++)
@@ -404,13 +410,13 @@ static void proportions(const Plan *p) {
     puts("");
 }
 
-static void describe(Move move) {
+void describe(Move move) {
     if (move.b==-1) printf("%s",crystal[move.a]);
     else printf("%s + %s = %s",crystal[move.a],crystal[move.b],recipe(move.a,move.b));
     printf(" → %s +10\n",part[target(move)]);
 }
 
-static void show_aunt_ing(void) {
+void show_aunt_ing(void) {
     puts("                  ⣠⢴⣒⣒⣲⢤⡀\n"
          "          ⢀⣀⡤⠤⠤⠤⠒⡞⠒⠲⠤⣌⡹⣽⠘⡆\n"
          "       ⢠⠔⠋⠁⢀⣠⠤⢀⣠⢦⡳⣈⠓⠦⣄⠙⢾⡰⠃\n"
@@ -429,9 +435,11 @@ static void show_aunt_ing(void) {
     puts("ป้าอิงยิ้มให้จากหน้าร้าน");
 }
 
-static void welcome(void) {
+void welcome(void) {
     puts("สวนรับฟัง");
-    const Plan title_tree={.value={30,30,30}, .count=9}; /* ต้นไม้ประดับหน้าเมนู */
+    Plan title_tree={0};
+    for (int i=0; i<3; i++) title_tree.value[i]=30;
+    title_tree.count=9; /* ต้นไม้ประดับหน้าเมนู */
     show_tree(&title_tree,NULL);
     puts("1. เล่นเลย");
     puts("2. รู้จักเกม ดูวิธีเล่นและสูตรผสม");
@@ -448,20 +456,20 @@ static void welcome(void) {
     puts("\nสูตรผสมผลึก");
     for (int a=0; a<TYPES; a++) {
         for (int b=a+1; b<TYPES; b++) {
-            if (recipe(a,b)) describe((Move){a,b});
+            if (recipe(a,b)) describe(make_move(a,b));
         }
     }
     puts("\n1. เริ่มเนื้อเรื่อง"); choose(1,1);
 }
 
 /* เลือกส่วนของต้นไม้ก่อน จะได้เห็นเฉพาะผลึกที่บำรุงส่วนนั้นได้ */
-static bool feed_group(Plan *plan, int group) {
+int feed_group(Plan *plan, int group) {
     for (;;) {
         Move options[6]; /* ผลึกตรงกลุ่ม 2 ชนิด และสูตรข้ามกลุ่ม 4 คู่ */
         int count=0;
         for (int a=0; a<TYPES; a++) {
             if (a/2!=group || !plan->bag[a]) continue;
-            options[count++]=(Move){a,-1};
+            options[count++]=make_move(a,-1);
         }
         int direct=count;
         for (int a=0; a<TYPES; a++) {
@@ -477,10 +485,10 @@ static bool feed_group(Plan *plan, int group) {
                 puts("วัตถุดิบที่เหลือยังผสมปุ๋ยส่วนนี้ไม่ได้");
                 puts("0. กลับไปเลือกส่วนอื่น");
                 choose(0,0);
-                return false;
+                return 0;
             }
             printf("1. ไปผสมปุ๋ยสำหรับ%s   0. กลับไปเลือกส่วนอื่น\n",part[group]);
-            if (choose(0,1)==0) return false;
+            if (choose(0,1)==0) return 0;
             printf("\nผสมปุ๋ยสำหรับ%s (+10 ต่อสูตร)\n",part[group]);
         } else {
             printf("\nเลือกปุ๋ยสำหรับ%s (+10 ต่อครั้ง)\n",part[group]);
@@ -494,7 +502,7 @@ static bool feed_group(Plan *plan, int group) {
         int choice=choose(0,count);
         if (!choice) {
             if (!direct) continue;
-            return false;
+            return 0;
         }
         Move move=options[choice-1];
         int amount=1;
@@ -505,21 +513,21 @@ static bool feed_group(Plan *plan, int group) {
         }
         for (int i=0; i<amount; i++) apply(plan,move);
         printf("เติม%s +%d\n",part[group],10*amount);
-        return true;
+        return 1;
     }
 }
 
-static bool feed(Plan *plan) {
+int feed(Plan *plan) {
     for (;;) {
         puts("\nอยากบำรุงส่วนไหน?");
         puts("1. ใบและดอก   2. ราก   3. เปลือก   0. กลับโต๊ะปลูก");
         int group=choose(0,3)-1;
-        if (group<0) return false;
-        if (feed_group(plan,group)) return true;
+        if (group<0) return 0;
+        if (feed_group(plan,group)) return 1;
     }
 }
 
-static void planting(const Day *day, Plan *plan) {
+void planting(const Day *day, Plan *plan) {
     int before[STOCK], actions=0;
     for (;;) {
         printf("\n17:00  โต๊ะปลูก  •  คืนนี้%s\n",weather[day->weather]);
@@ -562,7 +570,7 @@ static void planting(const Day *day, Plan *plan) {
     }
 }
 
-static const char *ending(const Plan *p, Result r) {
+const char *ending(const Plan *p, Result r) {
     if (!p->count) return "เมล็ดยังนอนอยู่ใต้ดิน พรุ่งนี้ลองหยิบผลึกสักชิ้นมาฝังข้าง ๆ กันนะ";
     if (r.perfect) return "เห็นดอกตรงนั้นไหม วันที่ยิ้มได้ช่วยเลี้ยงใบ วันที่ใจหายก็ช่วยเลี้ยงราก ส่วนวันที่ต้องลุกขึ้นปกป้องตัวเอง ก็กลายมาเป็นเปลือกให้มัน";
     if (r.missing[1] && p->value[0]>p->value[1]) return "ยอดมันไปไกลกว่ารากเสียแล้ว ลองแบ่งที่ให้ความกลัวบ้าง รากจะได้โตทันตอนที่ใบพากันผลิ";
@@ -575,7 +583,7 @@ static const char *ending(const Plan *p, Result r) {
 
 /* ผลึกชนิดเดียวกันใช้ของลูกค้าที่มาก่อน เลือกเล่าถึงคนที่ฝาก
    วัตถุดิบของสูตรแรก ถ้าไม่ได้ผสมให้เล่าถึงผลึกชิ้นแรกแทน */
-static void visitor_returns(const Day *day, const Plan *p) {
+void visitor_returns(const Day *day, const Plan *p) {
     if (!p->count) return;
     int index=0;
     for (int i=0; i<p->count; i++) {
@@ -598,7 +606,7 @@ static void visitor_returns(const Day *day, const Plan *p) {
     }
 }
 
-static void morning(const Day *day,const Plan *p) {
+void morning(const Day *day,const Plan *p) {
     const char *event[]={"ฝนสาดเข้าที่กิ่ง ยอดเอนตามแรงลม","ลมร้อนพัดจนผิวดินเริ่มแตกระแหง","แมลงไต่จากโคนต้นขึ้นไปหายอดอ่อน"};
     Result r=evaluate(p->value,day->weather);
     printf("\nกลางคืน  |  %s\n%s\n",weather[day->weather],event[day->weather]);
@@ -616,9 +624,7 @@ static void morning(const Day *day,const Plan *p) {
 }
 
 int main(void) {
-#ifdef _WIN32
-    SetConsoleOutputCP(CP_UTF8);
-#endif
+    srand((unsigned)time(NULL));
     welcome();
     for (;;) {
         Day day;
