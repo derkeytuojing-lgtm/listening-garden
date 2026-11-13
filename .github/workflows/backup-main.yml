@@ -1,0 +1,17 @@
+name: Save previous main
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  backup:
+    if: github.event.before != '0000000000000000000000000000000000000000'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tag the revision before this update
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BEFORE: ${{ github.event.before }}
+        run: gh api --method POST "repos/$REPO/git/refs" -f ref="refs/tags/backup/main-$GITHUB_RUN_ID" -f sha="$BEFORE"

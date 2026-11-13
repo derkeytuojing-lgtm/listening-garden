@@ -100,3 +100,6 @@ share/ListeningGarden.c และ share/GardenClass.exe เป็นฉบับ
 
 ## เตรียม repo สำหรับทำงานกับเพื่อน
 เพิ่ม GitHub Actions แบบ read-only สำหรับ push/PR และวิธีทำ feature branch ใน README คอมไพล์ทั้งสองรุ่นบน Windows ผ่าน ตรวจ 10,000 วันและเล่นฉบับส่งงานจนถึงคะแนนผ่าน การสร้าง repo และตั้งค่าฝั่ง GitHub ต้องยืนยัน visibility ก่อน
+
+## GitHub และการสำรอง
+repo สาธารณะ lyounge/listening-garden, main บังคับ PR และ Build and test รวมถึงผู้ดูแล ปิด force-push และลบ main สร้าง ZIP ก่อนแก้ใน LocalAppData/ListeningGarden/Backups และใช้ workflow ติด tag revision ก่อนอัปเดต main การสำรองไฟล์ค้างบนเครื่องเพื่อนต้องรันสคริปต์ที่เครื่องนั้น

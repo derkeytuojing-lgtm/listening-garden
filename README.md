@@ -83,3 +83,10 @@ git switch -c feature/planting-menu
 ```
 
 แก้และคอมไพล์ในเครื่อง ใช้ชื่อไฟล์ทดสอบต่างจาก EXE ที่แจกอยู่ จากนั้น commit เฉพาะไฟล์ที่แก้ push branch และเปิด pull request เข้า main เขียนว่าเปลี่ยนอะไรและลองเล่นทางไหน ให้เพื่อนตรวจ diff และรอ Build and test ผ่านก่อนกด squash merge ถ้าแก้พลาดให้สร้าง PR ย้อน commit ที่รวมไปแล้ว
+
+### สำรองก่อนแก้และส่งงานจาก fork
+
+1. บน GitHub กด Fork เพื่อสร้างสำเนาในบัญชีของเพื่อน แล้ว clone สำเนานั้นลงเครื่อง
+2. ก่อนแก้ไฟล์บน Windows ให้รัน `.\scripts\backup.ps1` สคริปต์จะพิมพ์ตำแหน่ง ZIP ที่รวมไฟล์ปัจจุบันและงานที่ยังไม่ได้ commit ควรแตก ZIP ไปโฟลเดอร์ใหม่เมื่อต้องการกู้ บนเครื่องเพื่อนต้องรันเองก่อนแก้
+3. สร้าง branch แก้งาน push ขึ้น fork แล้วกด Compare & pull request โดยตั้งปลายทางเป็น `lyounge/listening-garden:main` เจ้าของตรวจและกด Squash and merge หลัง Build and test ผ่าน
+4. ทุกครั้งที่ main อัปเดต GitHub Actions จะติด tag `backup/main-...` ให้ commit ก่อนหน้า เปิด Tags เพื่อดูหรือดาวน์โหลดรุ่นนั้น หากต้องย้อนบน main ให้ทำผ่าน revert PR
