@@ -311,25 +311,25 @@ void draw_frame(const Plan *p, int frame, const Result *morning) {
         /* กิ่งเอนออกจากโคนมากขึ้น ยิ่งอยู่ใกล้ยอด */
         if (leaning) printf("%*s",8-row,"");
         if (morning && morning->perfect && row==2)
-            puts("   ⢸⠁  ✿  ⠞⠉⠉    ✿     ⠈⡆");
+            printf("   ⢸⠁  ✿  ⠞⠉⠉    ✿     ⠈⡆\n");
         else if (morning && morning->perfect && row==4)
-            puts(" ⠘⢦⡀ ⠘⠁  ✿  ⠠⡀  ⢠⠖⠒⠂ ✿  ⢀⡴⠁");
-        else puts(pictures[image][row]);
+            printf(" ⠘⢦⡀ ⠘⠁  ✿  ⠠⡀  ⢠⠖⠒⠂ ✿  ⢀⡴⠁\n");
+        else printf("%s\n", pictures[image][row]);
     }
 
-    if (leaning) puts("             ⢀⠎");
-    else if (frame && morning && morning->missing[2]>0) puts("             ⡏⠄");
-    else if (frame >= 3 && p->value[2] >= 30) puts("            ⢸⡇");
-    else if (frame >= 2) puts("             ⡇");
-    else puts("             ⠂");
-    puts("  ⠒⠂⠐⠒⠒⠂⠐⠒⠂⠐⠒⠂⠸⠒⠂⠐⠒⠒⠂⠐⠒⠂⠐⠒");
+    if (leaning) printf("             ⢀⠎\n");
+    else if (frame && morning && morning->missing[2]>0) printf("             ⡏⠄\n");
+    else if (frame >= 3 && p->value[2] >= 30) printf("            ⢸⡇\n");
+    else if (frame >= 2) printf("             ⡇\n");
+    else printf("             ⠂\n");
+    printf("  ⠒⠂⠐⠒⠒⠂⠐⠒⠂⠐⠒⠂⠸⠒⠂⠐⠒⠒⠂⠐⠒⠂⠐⠒\n");
     if (frame >= 3 && p->value[1] >= 30) {
-        puts("        ⢀⡠⠔⠊⢹⠑⠢⢄⡀");
-        puts("      ⠠⠔⠁    ⠘⠄   ⠉⠒⠤");
+        printf("        ⢀⡠⠔⠊⢹⠑⠢⢄⡀\n");
+        printf("      ⠠⠔⠁    ⠘⠄   ⠉⠒⠤\n");
     } else {
-        if (frame>0) puts("             ⠣");
-        else puts("");
-        puts("");
+        if (frame>0) printf("             ⠣\n");
+        else printf("\n");
+        printf("\n");
     }
 }
 
@@ -339,7 +339,7 @@ void show_tree(const Plan *p, const Result *morning) {
 }
 
 void grow_tree(const Plan *p) {
-    puts("\nสวนหลังร้าน");
+    printf("\nสวนหลังร้าน\n");
     if (!p->count) {
         draw_frame(p,0,NULL);
         return;
@@ -348,7 +348,7 @@ void grow_tree(const Plan *p) {
     for (int frame=0; frame<=4; frame++) {
         draw_frame(p,frame,NULL);
         if (frame<4) {
-            puts("กด Enter เพื่อดูต้นไม้โตต่อ");
+            printf("กด Enter เพื่อดูต้นไม้โตต่อ\n");
             if (!fgets(line,sizeof line,stdin)) return;
         }
     }
@@ -371,16 +371,16 @@ int choose(int low, int high) {
 
 void care_notes(void) {
 
-    puts("สุข / ภูมิใจ เลี้ยงใบและดอก     เศร้า / กลัว เลี้ยงราก");
-    puts("โกรธ / ผิดหวัง เลี้ยงเปลือก     ผลึกหนึ่งชิ้นให้ 10 หน่วย");
-    puts("ผสมผลึกต่างกลุ่มสองชิ้น จะได้ปุ๋ยของกลุ่มที่สาม 10 หน่วย");
-    puts("ถ้าอยากเห็นดอก ให้ทั้งสามด้านเท่ากัน ด้านละอย่างน้อย 30");
+    printf("สุข / ภูมิใจ เลี้ยงใบและดอก     เศร้า / กลัว เลี้ยงราก\n");
+    printf("โกรธ / ผิดหวัง เลี้ยงเปลือก     ผลึกหนึ่งชิ้นให้ 10 หน่วย\n");
+    printf("ผสมผลึกต่างกลุ่มสองชิ้น จะได้ปุ๋ยของกลุ่มที่สาม 10 หน่วย\n");
+    printf("ถ้าอยากเห็นดอก ให้ทั้งสามด้านเท่ากัน ด้านละอย่างน้อย 30\n");
 }
 
 void guide(const Day *day) {
-    puts("\nสมุดที่ป้าอิงฝากไว้");
+    printf("\nสมุดที่ป้าอิงฝากไว้\n");
     care_notes();
-    puts(forecast[day->weather]);
+    printf("%s\n", forecast[day->weather]);
 }
 
 void meet_customers(const Day *day, Plan *plan) {
@@ -393,10 +393,10 @@ void meet_customers(const Day *day, Plan *plan) {
         int answer=choose(1,3);
         if (answer==3) {
             printf("“%s”\n",s->clarify);
-            puts(s->listenAction);
+            printf("%s\n", s->listenAction);
         }
-        if (answer==2) puts(s->otherReply);
-        else puts(s->reply);
+        if (answer==2) printf("%s\n", s->otherReply);
+        else printf("%s\n", s->reply);
         plan->bag[s->type]+=day->gift[i];
         printf("รับผลึก%s %d ชิ้น เก็บเข้าคลังแล้ว\n",crystal[s->type],day->gift[i]);
     }
@@ -404,10 +404,10 @@ void meet_customers(const Day *day, Plan *plan) {
 
 void proportions(const Plan *p) {
     int total=p->value[0]+p->value[1]+p->value[2];
-    if (total==0) { puts("ยังไม่ได้ใส่ปุ๋ย"); return; }
+    if (total==0) { printf("ยังไม่ได้ใส่ปุ๋ย\n"); return; }
     for (int i=0; i<3; i++)
         printf("%s %d (%.1f%%)   ",part[i],p->value[i],100.0*p->value[i]/total);
-    puts("");
+    printf("\n");
 }
 
 void describe(Move move) {
@@ -417,7 +417,7 @@ void describe(Move move) {
 }
 
 void show_aunt_ing(void) {
-    puts("                  ⣠⢴⣒⣒⣲⢤⡀\n"
+    printf("                  ⣠⢴⣒⣒⣲⢤⡀\n"
          "          ⢀⣀⡤⠤⠤⠤⠒⡞⠒⠲⠤⣌⡹⣽⠘⡆\n"
          "       ⢠⠔⠋⠁⢀⣠⠤⢀⣠⢦⡳⣈⠓⠦⣄⠙⢾⡰⠃\n"
          "      ⣰⠃ ⣠⠞⣉⡤⠖⠋  ⠳⣌⠙⠒⠚⠻⡍⢳\n"
@@ -431,35 +431,35 @@ void show_aunt_ing(void) {
          "           ⣼⠙⠒⠦⠤⠤⠤⠖⢺⣅\n"
          "     ⢀⡠⠴⠒⠋⢻⡁⠙⠦⣄⣀⣠⠤⠞⠁⣨⠏⠙⠒⠲⢤⣀\n"
          "   ⣠⠞⠉     ⠙⠦⣄⡴⠋⠳⣄⡤⠖⠁     ⠈⠓⢤⡀\n"
-         "   ⠁                         ⠁");
-    puts("ป้าอิงยิ้มให้จากหน้าร้าน");
+         "   ⠁                         ⠁\n");
+    printf("ป้าอิงยิ้มให้จากหน้าร้าน\n");
 }
 
 void welcome(void) {
-    puts("สวนรับฟัง");
+    printf("สวนรับฟัง\n");
     Plan title_tree={0};
     for (int i=0; i<3; i++) title_tree.value[i]=30;
     title_tree.count=9; /* ต้นไม้ประดับหน้าเมนู */
     show_tree(&title_tree,NULL);
-    puts("1. เล่นเลย");
-    puts("2. รู้จักเกม ดูวิธีเล่นและสูตรผสม");
+    printf("1. เล่นเลย\n");
+    printf("2. รู้จักเกม ดูวิธีเล่นและสูตรผสม\n");
     if (choose(1,2)==1) return;
 
-    puts("\nเกมนี้เป็นแนวไหน?");
-    puts("คุณเปิดร้านเล็ก ๆ ให้คนแวะมาเล่าเรื่อง แลกกับผลึกความรู้สึก");
-    puts("พอร้านปิด ผลึกที่เก็บไว้จะกลายเป็นปริศนา คุณจะใช้มันเลี้ยงต้นไม้ยังไงให้ผ่านคืนนี้?");
-    puts("\nวิธีเล่น");
-    puts("ตอนเช้า ฟังพยากรณ์จากป้าอิง แล้วเลือกคำถามที่อยากถามลูกค้า");
-    puts("ตอนเย็น เลือกใส่ผลึกทีละชนิดหรือผสมเป็นปุ๋ย ลองจัดใหม่ได้จนกว่าจะยืนยันปลูก");
+    printf("\nเกมนี้เป็นแนวไหน?\n");
+    printf("คุณเปิดร้านเล็ก ๆ ให้คนแวะมาเล่าเรื่อง แลกกับผลึกความรู้สึก\n");
+    printf("พอร้านปิด ผลึกที่เก็บไว้จะกลายเป็นปริศนา คุณจะใช้มันเลี้ยงต้นไม้ยังไงให้ผ่านคืนนี้?\n");
+    printf("\nวิธีเล่น\n");
+    printf("ตอนเช้า ฟังพยากรณ์จากป้าอิง แล้วเลือกคำถามที่อยากถามลูกค้า\n");
+    printf("ตอนเย็น เลือกใส่ผลึกทีละชนิดหรือผสมเป็นปุ๋ย ลองจัดใหม่ได้จนกว่าจะยืนยันปลูก\n");
     care_notes();
-    puts("\n1. เปิดหน้าสูตรผสม"); choose(1,1);
-    puts("\nสูตรผสมผลึก");
+    printf("\n1. เปิดหน้าสูตรผสม\n"); choose(1,1);
+    printf("\nสูตรผสมผลึก\n");
     for (int a=0; a<TYPES; a++) {
         for (int b=a+1; b<TYPES; b++) {
             if (recipe(a,b)) describe(make_move(a,b));
         }
     }
-    puts("\n1. เริ่มเนื้อเรื่อง"); choose(1,1);
+    printf("\n1. เริ่มเนื้อเรื่อง\n"); choose(1,1);
 }
 
 /* เลือกส่วนของต้นไม้ก่อน จะได้เห็นเฉพาะผลึกที่บำรุงส่วนนั้นได้ */
@@ -473,10 +473,10 @@ int feed_group(Plan *plan, int group) {
             printf("%d. ใช้%s (เหลือ %d ชิ้น)\n",count,crystal[i],plan->bag[i]);
         }
         if (!count) {
-            puts("ผลึกส่วนนี้หมดแล้ว");
+            printf("ผลึกส่วนนี้หมดแล้ว\n");
             return 0;
         }
-        puts("เลือกผลึก หรือ 0 เพื่อเลือกส่วนอื่น");
+        printf("เลือกผลึก หรือ 0 เพื่อเลือกส่วนอื่น\n");
         int choice=choose(0,count);
         if (!choice) return 0;
         Move move={options[choice-1],-1};
@@ -494,8 +494,8 @@ int feed_group(Plan *plan, int group) {
 
 int feed(Plan *plan) {
     for (;;) {
-        puts("\nอยากบำรุงส่วนไหน?");
-        puts("1. ใบและดอก   2. ราก   3. เปลือก   0. กลับโต๊ะปลูก");
+        printf("\nอยากบำรุงส่วนไหน?\n");
+        printf("1. ใบและดอก   2. ราก   3. เปลือก   0. กลับโต๊ะปลูก\n");
         int group=choose(0,3)-1;
         if (group<0) return 0;
         if (feed_group(plan,group)) return 1;
@@ -504,7 +504,7 @@ int feed(Plan *plan) {
 
 int mix_fertilizer(Plan *plan) {
     int options[TYPES], count=0, groups[3]={0};
-    puts("\nโต๊ะผสมปุ๋ย");
+    printf("\nโต๊ะผสมปุ๋ย\n");
     for (int i=0; i<TYPES; i++) {
         if (!plan->bag[i]) continue;
         groups[i/2]=1;
@@ -512,22 +512,22 @@ int mix_fertilizer(Plan *plan) {
         printf("%d. %s × %d\n",count,crystal[i],plan->bag[i]);
     }
     if (groups[0]+groups[1]+groups[2]<2) {
-        puts("ต้องมีผลึกต่างกลุ่มกันสองชิ้นจึงจะผสมได้");
+        printf("ต้องมีผลึกต่างกลุ่มกันสองชิ้นจึงจะผสมได้\n");
         return 0;
     }
-    puts("เลือกผลึกชิ้นแรก หรือ 0 เพื่อกลับโต๊ะปลูก");
+    printf("เลือกผลึกชิ้นแรก หรือ 0 เพื่อกลับโต๊ะปลูก\n");
     int first=choose(0,count);
     if (!first) return 0;
-    puts("เลือกผลึกชิ้นที่สอง หรือ 0 เพื่อกลับโต๊ะปลูก");
+    printf("เลือกผลึกชิ้นที่สอง หรือ 0 เพื่อกลับโต๊ะปลูก\n");
     int second=choose(0,count);
     if (!second) return 0;
     Move move={options[first-1],options[second-1]};
     if (move.a/2==move.b/2) {
-        puts("ผลึกสองชิ้นนี้อยู่กลุ่มเดียวกัน จึงผสมกันไม่ได้");
+        printf("ผลึกสองชิ้นนี้อยู่กลุ่มเดียวกัน จึงผสมกันไม่ได้\n");
         return 0;
     }
     describe(move);
-    puts("1. ผสมแล้วใส่ลงต้นไม้   0. กลับโต๊ะปลูก");
+    printf("1. ผสมแล้วใส่ลงต้นไม้   0. กลับโต๊ะปลูก\n");
     if (!choose(0,1)) return 0;
     return apply(plan,move);
 }
@@ -536,9 +536,9 @@ void planting(const Day *day, Plan *plan) {
     int before[STOCK], actions=0;
     for (;;) {
         printf("\n17:00  โต๊ะปลูก  •  คืนนี้%s\n",weather[day->weather]);
-        puts("อยากให้ต้นออกดอก เลี้ยงทั้งสามส่วนให้เท่ากัน ด้านละอย่างน้อย 30");
+        printf("อยากให้ต้นออกดอก เลี้ยงทั้งสามส่วนให้เท่ากัน ด้านละอย่างน้อย 30\n");
         printf("ใบ %d   ราก %d   เปลือก %d\n",plan->value[0],plan->value[1],plan->value[2]);
-        puts("1. ใส่ปุ๋ย   2. ดูหรือแก้แผน   3. ปลูกและปิดร้าน   4. ผสมปุ๋ย");
+        printf("1. ใส่ปุ๋ย   2. ดูหรือแก้แผน   3. ปลูกและปิดร้าน   4. ผสมปุ๋ย\n");
         int action=choose(1,4);
         if (action==1) {
             int previous=plan->count;
@@ -547,32 +547,32 @@ void planting(const Day *day, Plan *plan) {
             int previous=plan->count;
             if (mix_fertilizer(plan)) before[actions++]=previous;
         } else if (action==2) {
-            puts("\nต้นไม้ตามแผนตอนนี้");
+            printf("\nต้นไม้ตามแผนตอนนี้\n");
             show_tree(plan,NULL);
             for (int i=0; i<3; i++) {
                 int value=plan->value[i];
                 printf("%s %d หน่วย · ",part[i],value);
                 if (value<30) printf("อีก %d หน่วยถึงขั้นต่ำ\n",30-value);
-                else puts("ถึงขั้นต่ำแล้ว");
+                else printf("ถึงขั้นต่ำแล้ว\n");
             }
-            puts("ผลึกที่เหลือ");
+            printf("ผลึกที่เหลือ\n");
             for (int i=0; i<TYPES; i++)
                 printf("%s × %d%s",crystal[i],plan->bag[i],i%2 ? "\n" : "   ");
-            puts("1. ย้อนครั้งล่าสุด   2. คืนผลึกทั้งหมด   3. เปิดคู่มือ   0. กลับ");
+            printf("1. ย้อนครั้งล่าสุด   2. คืนผลึกทั้งหมด   3. เปิดคู่มือ   0. กลับ\n");
             int edit=choose(0,3);
             if (edit==1 && actions) {
                 int stop=before[--actions];
                 while (plan->count>stop) undo(plan);
-                puts("คืนผลึกที่ใส่ครั้งล่าสุดแล้ว");
-            } else if (edit==1) puts("ยังไม่มีรายการให้ย้อน");
+                printf("คืนผลึกที่ใส่ครั้งล่าสุดแล้ว\n");
+            } else if (edit==1) printf("ยังไม่มีรายการให้ย้อน\n");
             else if (edit==2) {
                 while (plan->count) undo(plan);
                 actions=0;
-                puts("คืนผลึกทั้งหมดแล้ว");
+                printf("คืนผลึกทั้งหมดแล้ว\n");
             } else if (edit==3) guide(day);
         } else {
-            if (!plan->count) puts("เมล็ดนี้ยังไม่ได้ใส่ปุ๋ย");
-            puts("ปิดร้านแล้วจะแก้แผนไม่ได้   1. ยืนยันปลูก   2. กลับไปจัดแผน");
+            if (!plan->count) printf("เมล็ดนี้ยังไม่ได้ใส่ปุ๋ย\n");
+            printf("ปิดร้านแล้วจะแก้แผนไม่ได้   1. ยืนยันปลูก   2. กลับไปจัดแผน\n");
             if (choose(1,2)==1) return;
         }
     }
@@ -629,12 +629,12 @@ void morning(const Day *day,const Plan *p) {
     const char *event[]={"ฝนสาดเข้าที่กิ่ง ยอดเอนตามแรงลม","ลมร้อนพัดจนผิวดินเริ่มแตกระแหง","แมลงไต่จากโคนต้นขึ้นไปหายอดอ่อน"};
     Result r=evaluate(p->value,day->weather);
     printf("\nกลางคืน  |  %s\n%s\n",weather[day->weather],event[day->weather]);
-    puts("1. รอจนฟ้าสาง"); choose(1,1);
-    puts("\nเช้าวันถัดมา"); show_tree(p,&r);
+    printf("1. รอจนฟ้าสาง\n"); choose(1,1);
+    printf("\nเช้าวันถัดมา\n"); show_tree(p,&r);
     printf("ป้าอิงก้มลงมองต้นไม้ “%s”\n",ending(p,r,day->weather));
     visitor_returns(day,p);
-    puts("1. เปิดบันทึกการปลูก"); choose(1,1);
-    puts("สัดส่วนปุ๋ยที่ใส่ทั้งหมด");
+    printf("1. เปิดบันทึกการปลูก\n"); choose(1,1);
+    printf("สัดส่วนปุ๋ยที่ใส่ทั้งหมด\n");
     proportions(p);
     printf("อากาศเมื่อคืน: %s   ขาดราก %d หน่วย / เปลือก %d หน่วย   สุขภาพ %d/100\n",
            weather[day->weather],r.missing[1],r.missing[2],r.health);
@@ -652,22 +652,22 @@ int main(void) {
         Day day;
         Plan plan={0};
         new_day(&day);
-        puts("\nสวนรับฟัง\n08:00  |  ป้าอิงวางห่อกระดาษลงบนเคาน์เตอร์");
+        printf("\nสวนรับฟัง\n08:00  |  ป้าอิงวางห่อกระดาษลงบนเคาน์เตอร์\n");
         show_aunt_ing();
-        puts("“ฝากเมล็ดไว้สักคืนนะ วันนี้ใครแวะมาก็ลองฟังเขาดู พอตกเย็นค่อยเอาผลึกที่เขาฝากไว้มาปลูกกัน”");
-        puts("ป้าอิงวางสมุดดูแลเมล็ดไว้ข้างห่อกระดาษ แล้วชี้ให้ดูพยากรณ์คืนนี้");
-        puts(forecast[day.weather]);
-        puts("1. เปิดประตูรับลูกค้า"); choose(1,1);
+        printf("“ฝากเมล็ดไว้สักคืนนะ วันนี้ใครแวะมาก็ลองฟังเขาดู พอตกเย็นค่อยเอาผลึกที่เขาฝากไว้มาปลูกกัน”\n");
+        printf("ป้าอิงวางสมุดดูแลเมล็ดไว้ข้างห่อกระดาษ แล้วชี้ให้ดูพยากรณ์คืนนี้\n");
+        printf("%s\n", forecast[day.weather]);
+        printf("1. เปิดประตูรับลูกค้า\n"); choose(1,1);
         meet_customers(&day,&plan);
         planting(&day,&plan);
         grow_tree(&plan);
         morning(&day,&plan);
-        puts("1. ดูสูตร Perfect ของวันนี้   2. เล่นรอบใหม่   3. ออกจากเกม");
+        printf("1. ดูสูตร Perfect ของวันนี้   2. เล่นรอบใหม่   3. ออกจากเกม\n");
         int action=choose(1,3);
         if (action==1) {
-            puts("เริ่มจากคลังก่อนใส่ปุ๋ย แล้วทำตามนี้ทีละบรรทัด");
+            printf("เริ่มจากคลังก่อนใส่ปุ๋ย แล้วทำตามนี้ทีละบรรทัด\n");
             for (int i=0;i<day.answer.count;i++) describe(day.answer.moves[i]);
-            puts("2. เล่นรอบใหม่   3. ออกจากเกม");
+            printf("2. เล่นรอบใหม่   3. ออกจากเกม\n");
             action=choose(2,3);
         }
         if (action==3) return 0;
