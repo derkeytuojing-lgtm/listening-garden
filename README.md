@@ -71,3 +71,15 @@ gcc -std=c11 -Wall -Wextra -O2 main.c garden.c stories.c growth.c -o ListeningGa
 ```
 
 ทดสอบกติกาแยกจากเกมด้วย `gcc -std=c11 test_garden.c garden.c stories.c -o test_garden.exe` แล้วรัน `.\test_garden.exe`
+
+## ทำงานกับเพื่อน
+
+ไฟล์ส่งอาจารย์คือ `share/ListeningGarden.c` ส่วนซอร์สที่รากโฟลเดอร์เป็นเกมอีกรุ่น ก่อนแก้ให้ตกลงกันว่าใครทำเมนู บทพูด หรือกติกา แล้วเริ่มจาก main ล่าสุด
+
+```sh
+git switch main
+git pull --ff-only
+git switch -c feature/planting-menu
+```
+
+แก้และคอมไพล์ในเครื่อง ใช้ชื่อไฟล์ทดสอบต่างจาก EXE ที่แจกอยู่ จากนั้น commit เฉพาะไฟล์ที่แก้ push branch และเปิด pull request เข้า main เขียนว่าเปลี่ยนอะไรและลองเล่นทางไหน ให้เพื่อนตรวจ diff และรอ Build and test ผ่านก่อนกด squash merge ถ้าแก้พลาดให้สร้าง PR ย้อน commit ที่รวมไปแล้ว
