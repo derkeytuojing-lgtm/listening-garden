@@ -338,6 +338,9 @@ void show_tree(const Plan *p, const Result *morning) {
     else draw_frame(p,0,morning);
 }
 
+/* ทุกเมนูใช้สถานะนี้ร่วมกัน เมื่ออ่านต่อไม่ได้ main จะจบเกม */
+int inputEnded=0;
+
 void grow_tree(const Plan *p) {
     printf("\nสวนหลังร้าน\n");
     if (!p->count) {
@@ -349,7 +352,10 @@ void grow_tree(const Plan *p) {
         draw_frame(p,frame,NULL);
         if (frame<4) {
             printf("กด Enter เพื่อดูต้นไม้โตต่อ\n");
-            if (!fgets(line,sizeof line,stdin)) return;
+            if (!fgets(line,sizeof line,stdin)) {
+                inputEnded=1;
+                return;
+            }
         }
     }
 }
@@ -362,7 +368,10 @@ int choose(int low, int high) {
     for (;;) {
         printf("> ");
         fflush(stdout);
-        if (!fgets(line, sizeof line, stdin)) exit(0);
+        if (!fgets(line, sizeof line, stdin)) {
+            inputEnded=1;
+            return 0;
+        }
         if (sscanf(line, "%d %c", &answer, &extra) == 1 &&
             answer >= low && answer <= high) return answer;
         printf("เลือกเลข %d ถึง %d แล้วกด Enter\n", low, high);
@@ -391,6 +400,7 @@ void meet_customers(const Day *day, Plan *plan) {
 
         printf("1. %s\n2. %s\n3. ถามว่าอยากให้ช่วยอะไร\n",s->question,s->otherQuestion);
         int answer=choose(1,3);
+        if (inputEnded) return;
         if (answer==3) {
             printf("“%s”\n",s->clarify);
             printf("%s\n", s->listenAction);
@@ -443,7 +453,7 @@ void welcome(void) {
     show_tree(&title_tree,NULL);
     printf("1. เล่นเลย\n");
     printf("2. รู้จักเกม ดูวิธีเล่นและสูตรผสม\n");
-    if (choose(1,2)==1) return;
+    if (choose(1,2)!=2) return;
 
     printf("\nเกมนี้เป็นแนวไหน?\n");
     printf("คุณเปิดร้านเล็ก ๆ ให้คนแวะมาเล่าเรื่อง แลกกับผลึกความรู้สึก\n");
@@ -452,14 +462,16 @@ void welcome(void) {
     printf("ตอนเช้า ฟังพยากรณ์จากป้าอิง แล้วเลือกคำถามที่อยากถามลูกค้า\n");
     printf("ตอนเย็น เลือกใส่ผลึกทีละชนิดหรือผสมเป็นปุ๋ย ลองจัดใหม่ได้จนกว่าจะยืนยันปลูก\n");
     care_notes();
-    printf("\n1. เปิดหน้าสูตรผสม\n"); choose(1,1);
+    printf("\n1. เปิดหน้าสูตรผสม\n");
+    if (!choose(1,1)) return;
     printf("\nสูตรผสมผลึก\n");
     for (int a=0; a<TYPES; a++) {
         for (int b=a+1; b<TYPES; b++) {
             if (recipe(a,b)) describe(make_move(a,b));
         }
     }
-    printf("\n1. เริ่มเนื้อเรื่อง\n"); choose(1,1);
+    printf("\n1. เริ่มเนื้อเรื่อง\n");
+    if (!choose(1,1)) return;
 }
 
 /* เลือกส่วนของต้นไม้ก่อน จะได้เห็นเฉพาะผลึกที่บำรุงส่วนนั้นได้ */
@@ -484,6 +496,7 @@ int feed_group(Plan *plan, int group) {
         if (plan->bag[move.a]>1) {
             printf("ใช้กี่ชิ้น? 1–%d หรือ 0 เพื่อเลือกปุ๋ยใหม่\n",plan->bag[move.a]);
             amount=choose(0,plan->bag[move.a]);
+            if (inputEnded) return 0;
             if (!amount) continue;
         }
         for (int i=0; i<amount; i++) apply(plan,move);
@@ -499,6 +512,7 @@ int feed(Plan *plan) {
         int group=choose(0,3)-1;
         if (group<0) return 0;
         if (feed_group(plan,group)) return 1;
+        if (inputEnded) return 0;
     }
 }
 
@@ -534,12 +548,13 @@ int mix_fertilizer(Plan *plan) {
 
 void planting(const Day *day, Plan *plan) {
     int before[STOCK], actions=0;
-    for (;;) {
+    while (!inputEnded) {
         printf("\n17:00  โต๊ะปลูก  •  คืนนี้%s\n",weather[day->weather]);
         printf("อยากให้ต้นออกดอก เลี้ยงทั้งสามส่วนให้เท่ากัน ด้านละอย่างน้อย 30\n");
         printf("ใบ %d   ราก %d   เปลือก %d\n",plan->value[0],plan->value[1],plan->value[2]);
         printf("1. ใส่ปุ๋ย   2. ดูหรือแก้แผน   3. ปลูกและปิดร้าน   4. ผสมปุ๋ย\n");
         int action=choose(1,4);
+        if (inputEnded) return;
         if (action==1) {
             int previous=plan->count;
             if (feed(plan)) before[actions++]=previous;
@@ -573,7 +588,7 @@ void planting(const Day *day, Plan *plan) {
         } else {
             if (!plan->count) printf("เมล็ดนี้ยังไม่ได้ใส่ปุ๋ย\n");
             printf("ปิดร้านแล้วจะแก้แผนไม่ได้   1. ยืนยันปลูก   2. กลับไปจัดแผน\n");
-            if (choose(1,2)==1) return;
+            if (choose(1,2)!=2) return;
         }
     }
 }
@@ -629,11 +644,13 @@ void morning(const Day *day,const Plan *p) {
     const char *event[]={"ฝนสาดเข้าที่กิ่ง ยอดเอนตามแรงลม","ลมร้อนพัดจนผิวดินเริ่มแตกระแหง","แมลงไต่จากโคนต้นขึ้นไปหายอดอ่อน"};
     Result r=evaluate(p->value,day->weather);
     printf("\nกลางคืน  |  %s\n%s\n",weather[day->weather],event[day->weather]);
-    printf("1. รอจนฟ้าสาง\n"); choose(1,1);
+    printf("1. รอจนฟ้าสาง\n");
+    if (!choose(1,1)) return;
     printf("\nเช้าวันถัดมา\n"); show_tree(p,&r);
     printf("ป้าอิงก้มลงมองต้นไม้ “%s”\n",ending(p,r,day->weather));
     visitor_returns(day,p);
-    printf("1. เปิดบันทึกการปลูก\n"); choose(1,1);
+    printf("1. เปิดบันทึกการปลูก\n");
+    if (!choose(1,1)) return;
     printf("สัดส่วนปุ๋ยที่ใส่ทั้งหมด\n");
     proportions(p);
     printf("อากาศเมื่อคืน: %s   ขาดราก %d หน่วย / เปลือก %d หน่วย   สุขภาพ %d/100\n",
@@ -648,7 +665,7 @@ int main(void) {
 #endif
     srand((unsigned)time(NULL));
     welcome();
-    for (;;) {
+    while (!inputEnded) {
         Day day;
         Plan plan={0};
         new_day(&day);
@@ -657,11 +674,16 @@ int main(void) {
         printf("“ฝากเมล็ดไว้สักคืนนะ วันนี้ใครแวะมาก็ลองฟังเขาดู พอตกเย็นค่อยเอาผลึกที่เขาฝากไว้มาปลูกกัน”\n");
         printf("ป้าอิงวางสมุดดูแลเมล็ดไว้ข้างห่อกระดาษ แล้วชี้ให้ดูพยากรณ์คืนนี้\n");
         printf("%s\n", forecast[day.weather]);
-        printf("1. เปิดประตูรับลูกค้า\n"); choose(1,1);
+        printf("1. เปิดประตูรับลูกค้า\n");
+        if (!choose(1,1)) return 0;
         meet_customers(&day,&plan);
+        if (inputEnded) return 0;
         planting(&day,&plan);
+        if (inputEnded) return 0;
         grow_tree(&plan);
+        if (inputEnded) return 0;
         morning(&day,&plan);
+        if (inputEnded) return 0;
         printf("1. ดูสูตร Perfect ของวันนี้   2. เล่นรอบใหม่   3. ออกจากเกม\n");
         int action=choose(1,3);
         if (action==1) {
@@ -672,4 +694,5 @@ int main(void) {
         }
         if (action==3) return 0;
     }
+    return 0;
 }
