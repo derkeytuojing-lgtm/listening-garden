@@ -1,4 +1,4 @@
-﻿/* สวนรับฟัง ฉบับส่งงาน | gcc -std=c11 ListeningGarden.c -o GardenClass.exe
+﻿/* สวนรับฟัง ฉบับส่งงาน | gcc -std=c11 ListeningGarden.c -o GardenClass.exe eiei
    บันทึกซอร์สเป็น UTF-8 เพื่อแสดงภาษาไทยและภาพจุด */
 #include <stdio.h>
 #include <stdlib.h>
